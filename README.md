@@ -1,29 +1,34 @@
-# java-template
+# Photo RAW Lab
 
-Template Maven multi-módulo con Java 25 LTS, asdf, JUnit y un módulo `domain` sin framework. Se elige el tipo de aplicación al crear el proyecto: **Swing** (default), **libGDX** o **Spring Boot con SSR y Thymeleaf**. El template sin renderizar contiene placeholders y no compila directamente.
+Visor de fotografías RAW con Java 25, Swing y LibRaw mediante FFM. Abre una fotografía desde **Abrir archivo…** y la muestra ajustada a la ventana. La carga ocurre en segundo plano y los errores permiten volver a abrir otro archivo.
 
-## Crear un proyecto
+## Ejecutar
 
-Primero preguntá qué tipo de aplicación quiere la persona. Usá `swing` si no elige otro.
+El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `/opt/photo-raw-lab/bin/photo-raw-lab`. El paquete incluye su propio Java y declara la dependencia nativa LibRaw.
 
-1. Creá un repositorio desde `gstn-caruso/java-template` y clonalo.
-2. En la raíz del checkout, ejecutá:
+Para desarrollar en Ubuntu 24.04 o posterior:
 
-   ```text
-   java .template/Renderer.java --slug mi-app --name "Mi App" --description "Descripción" --owner gstn-caruso --flavor swing
-   ```
+```text
+sudo apt install libraw-dev xvfb
+asdf install
+mvn -B package
+java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar
+```
 
-   Reemplazá `swing` por `libgdx` o `spring-ssr` según la elección. `--flavor` puede omitirse para usar Swing. Opcionales: `--package`, `--class`, `--group-id`, `--author`, `--email` y `--year`.
-3. Ejecutá `mvn -B verify`, registrá el baseline en `CHANGELOG.md` y abrí un PR desde una feature branch. La CI debe pasar antes del merge.
+También podés pasar una ruta inicial:
 
-El renderer copia el sabor elegido, reemplaza los placeholders y borra `.template` junto con el workflow propio del template. El proyecto generado conserva `.tool-versions` con Temurin 25.
+```text
+java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar "/ruta/fotografía.raw"
+```
 
-## Release
+El JAR necesita Java 25 y `libraw.so.23`. Los launchers habilitan el [acceso nativo de FFM](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/foreign/SymbolLookup.html). El decoder usa la [API C de LibRaw](https://www.libraw.org/docs/API-C.html) para revelar los datos RAW completos a RGB sRGB de 8 bits. Identifica el formato por el contenido: acepta `.raw`, CR2/CR3, NEF, ARW, DNG, KDC y otros formatos soportados por la biblioteca instalada. Un volcado de sensor sin cabecera no identifica por sí solo cámara y dimensiones.
 
-Cada merge de PR a `main` dispara el workflow del proyecto generado, incluso si solo cambian docs o configuración. Tras `mvn verify`, construye el JAR con versión `0.1.<run_number>`, crea un `.deb` Linux `amd64` mediante `jpackage` y publica ambos junto con `CHANGELOG.md` en GitHub Releases. El `.deb` incluye una JVM propia; no depende de Java instalado en el equipo de destino. Cada PR actualiza `CHANGELOG.md` con una línea que describa el cambio para que el historial quede versionado.
+## Testear
 
-El JAR sigue necesitando Java 25 instalado para ejecutarse por separado. El `.deb` incluye Java 25 y el programa. Para publicar paquetes de otras arquitecturas hace falta una CI de esa arquitectura.
+`env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify`
 
-## Desarrollo del template
+Al usar Xvfb desde una sesión Wayland se eliminan esas dos variables sólo para el proceso de prueba, para que Java capture la pantalla virtual X11.
 
-`javac -d target/template-test .template/Renderer.java .template/RendererTest.java` y `java -cp target/template-test RendererTest` verifican el renderer. La CI genera los tres tipos de aplicación, ejecuta `mvn verify`, construye el JAR versionado y comprueba que cada `.deb` contenga `libjvm.so`.
+La suite incluye una fotografía RAW de cámara real, archivos corruptos y rutas Unicode, y pruebas Swing bajo Xvfb. El fixture tiene [licencia y atribución propias](app/src/test/resources/raw/README.md), se usa sólo en tests y no se incluye en el JAR.
+
+Cada merge a `main` publica un JAR y un `.deb` con runtime Java incluido, incluso para `docs:` y `chore:`. El PR debe actualizar `CHANGELOG.md`.

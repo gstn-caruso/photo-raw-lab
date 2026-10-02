@@ -5,13 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>{{group_id}}</groupId>
-    <artifactId>{{slug}}-parent</artifactId>
+    <groupId>io.github.gstncaruso</groupId>
+    <artifactId>photo-raw-lab-parent</artifactId>
     <version>${revision}</version>
   </parent>
 
-  <artifactId>{{slug}}-domain</artifactId>
-  <url>https://github.com/{{owner}}/{{slug}}</url>
+  <artifactId>photo-raw-lab-domain</artifactId>
+  <url>https://github.com/gstn-caruso/photo-raw-lab</url>
 
   <dependencies>
     <dependency>
