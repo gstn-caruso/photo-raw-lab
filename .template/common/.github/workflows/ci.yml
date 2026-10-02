@@ -1,0 +1,51 @@
+name: CI and release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Test
+        run: mvn -B verify
+      - name: Require changelog entry in each PR
+        if: github.event_name == 'pull_request'
+        run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '^CHANGELOG.md$'
+
+  release:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Build versioned JAR
+        run: mvn -B -Drevision=0.1.${{ github.run_number }} package
+      - name: Stage release JAR
+        run: install -D {{app_module}}/target/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar
+      - name: Package JAR with Java runtime
+        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar {{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar --name {{slug}} --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name {{slug}}
+      - name: Verify embedded runtime
+        run: dpkg-deb -c ${{ runner.temp }}/{{slug}}_0.1.${{ github.run_number }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
+      - name: Publish JAR and Debian package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create v0.1.${{ github.run_number }} {{app_module}}/target/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/{{slug}}_0.1.${{ github.run_number }}_amd64.deb CHANGELOG.md --title v0.1.${{ github.run_number }} --target ${{ github.sha }} --generate-notes
