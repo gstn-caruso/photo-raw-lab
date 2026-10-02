@@ -8,6 +8,8 @@ Una aplicación Swing Java 25 abre fotografías RAW desde un selector y las mues
 
 `app.RawViewerFrame` coordina una apertura por vez fuera del EDT y muestra estado/error recuperable. `app.RawImagePanel` traduce RGB a BufferedImage y dibuja con proporciones conservadas. Abrir se deshabilita mientras carga; cerrar no libera recursos nativos de otro hilo.
 
+La biblioteca cargada conserva vida de proceso: sus workers OpenMP pueden sobrevivir a una llamada de revelado. La arena por decode sólo posee buffers de parámetros; bitmap y handler se liberan antes de cerrarla. Una caché de lookups con Arena.global evita descargar código nativo todavía activo.
+
 CI ejecuta Maven/JUnit bajo Xvfb con LibRaw instalado, incluyendo un RAW real de cámara. Cada merge publica JAR, Debian amd64 con runtime Java propio y CHANGELOG. El Debian declara dependencia de LibRaw. Verificar también la ventana real y el launcher empaquetado.
 
 Decisiones autónomas: el plan original no existe en disco ni en GitHub; se reconstruye desde el objetivo autorizado. Swing es el stack desktop por defecto. Linux amd64 es el MVP distribuido. Fuera de alcance: edición, exportación y formatos sin soporte de LibRaw.

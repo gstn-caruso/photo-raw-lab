@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libraw-dev xvfb
-          xvfb-run -a mvn -B verify
+          env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
       - name: Require changelog entry in each PR
         if: github.event_name == 'pull_request'
         run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '^CHANGELOG.md$'
@@ -44,7 +44,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libraw-dev xvfb
-          xvfb-run -a mvn -B -Drevision=0.1.${{ github.run_number }} package
+          env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -Drevision=0.1.${{ github.run_number }} verify
       - name: Stage release JAR
         run: install -D app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-0.1.${{ github.run_number }}.jar
       - name: Package JAR with Java runtime
@@ -56,6 +56,8 @@ jobs:
           dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb Depends | grep libraw23t64
           dpkg-deb -x ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb ${{ runner.temp }}/package-smoke
           grep -- '--enable-native-access=ALL-UNNAMED' ${{ runner.temp }}/package-smoke/opt/photo-raw-lab/lib/app/photo-raw-lab.cfg
+      - name: Open real RAW through Debian launcher
+        run: env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -pl app -am -Drevision=0.1.${{ github.run_number }} -Dphoto.raw.launcher=${{ runner.temp }}/package-smoke/opt/photo-raw-lab/bin/photo-raw-lab test-compile failsafe:integration-test failsafe:verify
       - name: Publish JAR and Debian package
         env:
           GH_TOKEN: ${{ github.token }}
