@@ -19,7 +19,10 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Test
-        run: mvn -B verify
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libraw-dev xvfb
+          xvfb-run -a mvn -B verify
       - name: Require changelog entry in each PR
         if: github.event_name == 'pull_request'
         run: git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | grep '^CHANGELOG.md$'
@@ -38,13 +41,21 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Build versioned JAR
-        run: mvn -B -Drevision=0.1.${{ github.run_number }} package
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libraw-dev xvfb
+          xvfb-run -a mvn -B -Drevision=0.1.${{ github.run_number }} package
       - name: Stage release JAR
         run: install -D app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-0.1.${{ github.run_number }}.jar
       - name: Package JAR with Java runtime
-        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-0.1.${{ github.run_number }}.jar --name photo-raw-lab --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab
+        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-0.1.${{ github.run_number }}.jar --name photo-raw-lab --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab --linux-package-deps libraw23t64 --java-options --enable-native-access=ALL-UNNAMED
       - name: Verify embedded runtime
         run: dpkg-deb -c ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
+      - name: Verify native dependency and launcher
+        run: |
+          dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb Depends | grep libraw23t64
+          dpkg-deb -x ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb ${{ runner.temp }}/package-smoke
+          grep -- '--enable-native-access=ALL-UNNAMED' ${{ runner.temp }}/package-smoke/opt/photo-raw-lab/lib/app/photo-raw-lab.cfg
       - name: Publish JAR and Debian package
         env:
           GH_TOKEN: ${{ github.token }}
