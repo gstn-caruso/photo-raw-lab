@@ -18,4 +18,6 @@ Límites: un fixture Kodak real no prueba todos los modelos de cámara; no se us
 
 Green observado 2026-10-02: suite completa BUILD SUCCESS, 14 tests Surefire + 1 Failsafe, 0 failures/errors/skips. Debian local 0.1.1 amd64 contiene libjvm.so y declara libraw23t64. Prueba del launcher extraído BUILD SUCCESS, 1/1, sin stderr; packaged-window.png muestra la fotografía con botón Abrir archivo… y nombre kodak-dc50.kdc. La release remota todavía debe observarse después del PR.
 
+Chequeo adicional del contrato existente, sin cambio de producto: FileChooserIntegrationTest activa Abrir archivo…, espera el JFileChooser visible, selecciona fotografía.raw (fixture real con nombre Unicode) y confirma el estado final y la rehabilitación del botón. Expectativa y baseline coincidieron: suite ahora 15 Surefire + 1 Failsafe, todos verdes sin omisiones. La revisión corrigió también la ruta de ejecución del README tras contrastarla con el contenido del Debian.
+
 Criterio: intention-revealing-selector (#4); fronteras nativas y Swing separadas del dominio.
