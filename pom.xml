@@ -4,14 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>{{group_id}}</groupId>
-  <artifactId>{{slug}}-parent</artifactId>
+  <groupId>io.github.gstncaruso</groupId>
+  <artifactId>photo-raw-lab-parent</artifactId>
   <version>${revision}</version>
   <packaging>pom</packaging>
 
-  <name>{{name}}</name>
-  <description>{{description}}</description>
-  <url>https://github.com/{{owner}}/{{slug}}</url>
+  <name>Photo RAW Lab</name>
+  <description>Visor de fotografías RAW con Java y LibRaw</description>
+  <url>https://github.com/gstn-caruso/photo-raw-lab</url>
 
   <licenses>
     <license>
@@ -22,7 +22,7 @@
 
   <modules>
     <module>domain</module>
-    <module>{{app_module}}</module>
+    <module>app</module>
   </modules>
 
   <properties>

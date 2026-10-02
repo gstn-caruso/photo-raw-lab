@@ -40,12 +40,12 @@ jobs:
       - name: Build versioned JAR
         run: mvn -B -Drevision=0.1.${{ github.run_number }} package
       - name: Stage release JAR
-        run: install -D {{app_module}}/target/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar
+        run: install -D app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-0.1.${{ github.run_number }}.jar
       - name: Package JAR with Java runtime
-        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar {{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar --name {{slug}} --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name {{slug}}
+        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-0.1.${{ github.run_number }}.jar --name photo-raw-lab --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab
       - name: Verify embedded runtime
-        run: dpkg-deb -c ${{ runner.temp }}/{{slug}}_0.1.${{ github.run_number }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
+        run: dpkg-deb -c ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
       - name: Publish JAR and Debian package
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create v0.1.${{ github.run_number }} {{app_module}}/target/{{slug}}-{{app_module}}-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/{{slug}}_0.1.${{ github.run_number }}_amd64.deb CHANGELOG.md --title v0.1.${{ github.run_number }} --target ${{ github.sha }} --generate-notes
+        run: gh release create v0.1.${{ github.run_number }} app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb CHANGELOG.md --title v0.1.${{ github.run_number }} --target ${{ github.sha }} --generate-notes
