@@ -11,7 +11,7 @@ Para desarrollar en Ubuntu 24.04 o posterior:
 ```text
 sudo apt install libraw-dev xvfb
 asdf install
-mvn -B package
+env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
 java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar
 ```
 
