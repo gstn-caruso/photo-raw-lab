@@ -9,6 +9,7 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import photorawlab.domain.RawImageDecoder;
 import photorawlab.domain.RgbImage;
 
@@ -16,6 +17,8 @@ import static java.lang.foreign.ValueLayout.ADDRESS;
 import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public final class LibRawDecoder implements RawImageDecoder {
+    // OpenMP workers can outlive a decode; their library must remain loaded until process exit.
+    private static final ConcurrentHashMap<String, SymbolLookup> LIBRARIES = new ConcurrentHashMap<>();
     private final String library;
 
     public LibRawDecoder() {
@@ -29,7 +32,7 @@ public final class LibRawDecoder implements RawImageDecoder {
     @Override
     public RgbImage decode(Path path) throws IOException {
         Objects.requireNonNull(path, "path");
-        try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library, arena)) {
+        try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library)) {
             return session.develop(path, arena);
         } catch (IOException failure) {
             throw new IOException("Cannot decode " + path + ": " + failure.getMessage(), failure);
@@ -52,8 +55,9 @@ public final class LibRawDecoder implements RawImageDecoder {
         private final MemorySegment handler;
         private MemorySegment bitmap = MemorySegment.NULL;
 
-        private NativeSession(String library, Arena arena) throws IOException {
-            SymbolLookup symbols = SymbolLookup.libraryLookup(library, arena);
+        private NativeSession(String library) throws IOException {
+            SymbolLookup symbols = LIBRARIES.computeIfAbsent(library,
+                    name -> SymbolLookup.libraryLookup(name, Arena.global()));
             MethodHandle init = function(symbols, "libraw_init", FunctionDescriptor.of(ADDRESS, JAVA_INT));
             openFile = function(symbols, "libraw_open_file", FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
             unpack = function(symbols, "libraw_unpack", FunctionDescriptor.of(JAVA_INT, ADDRESS));

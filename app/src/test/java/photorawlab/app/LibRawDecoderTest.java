@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import photorawlab.domain.RgbImage;
@@ -55,6 +57,24 @@ class LibRawDecoderTest {
     void acceptsAnExplicitNativeLibrary() throws Exception {
         assertTrue(new LibRawDecoder(Path.of("/usr/lib/x86_64-linux-gnu/libraw.so.23"))
                 .decode(fixture()).pixels().length > 0);
+    }
+
+    @Test
+    void survivesTerminatingBackgroundThreadsAcrossDecoderInstances() throws Exception {
+        Path source = fixture();
+        RgbImage first = null;
+        for (int attempt = 0; attempt < 4; attempt++) {
+            LibRawDecoder decoder = new LibRawDecoder();
+            try (var executor = Executors.newSingleThreadExecutor()) {
+                RgbImage image = executor.submit(() -> decoder.decode(source)).get(10, TimeUnit.SECONDS);
+                if (first == null) {
+                    first = image;
+                } else {
+                    assertArrayEquals(first.pixels(), image.pixels());
+                }
+            }
+        }
+        assertNotNull(first);
     }
 
     private Path fixture() throws Exception {
