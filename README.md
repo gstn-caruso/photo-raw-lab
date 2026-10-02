@@ -4,7 +4,7 @@ Visor de fotografías RAW con Java 25, Swing y LibRaw mediante FFM. Abre una fot
 
 ## Ejecutar
 
-El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `photo-raw-lab`. El paquete incluye su propio Java y declara la dependencia nativa LibRaw.
+El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `/opt/photo-raw-lab/bin/photo-raw-lab`. El paquete incluye su propio Java y declara la dependencia nativa LibRaw.
 
 Para desarrollar en Ubuntu 24.04 o posterior:
 
