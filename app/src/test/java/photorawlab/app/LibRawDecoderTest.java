@@ -29,6 +29,42 @@ class LibRawDecoderTest {
     }
 
     @Test
+    void extractsThumbnailEvenWhenRawSensorDataCannotBeDeveloped() throws Exception {
+        byte[] cameraFile = Files.readAllBytes(fixture());
+        Path thumbnailOnly = Files.write(directory.resolve("cámara sin sensor.raw"), Arrays.copyOf(cameraFile, 0x4d00));
+        LibRawDecoder decoder = new LibRawDecoder();
+        assertThrows(IOException.class, () -> decoder.decode(thumbnailOnly));
+        assertArrayEquals(decoder.decodePreview(fixture()).pixels(), decoder.decodePreview(thumbnailOnly).pixels());
+    }
+
+    @Test
+    void fallsBackToFullDevelopmentWhenCameraThumbnailIsMissingOrInvalid() throws Exception {
+        byte[] cameraFile = Files.readAllBytes(fixture());
+        var tiff = java.nio.ByteBuffer.wrap(cameraFile).order(java.nio.ByteOrder.BIG_ENDIAN);
+        assertEquals(0x0111, Short.toUnsignedInt(tiff.getShort(0x76)));
+        tiff.putInt(0x7e, 0);
+        Path noThumbnail = Files.write(directory.resolve("no-thumbnail.raw"), cameraFile);
+        LibRawDecoder decoder = new LibRawDecoder();
+        RgbImage full = decoder.decode(noThumbnail);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            assertArrayEquals(full.pixels(), decoder.decodePreview(noThumbnail).pixels());
+        }
+        tiff.putInt(0x7e, cameraFile.length - 1);
+        Path invalidThumbnail = Files.write(directory.resolve("invalid-thumbnail.raw"), cameraFile);
+        assertArrayEquals(full.pixels(), decoder.decodePreview(invalidThumbnail).pixels());
+    }
+
+    @Test
+    void previewErrorsAreRecoverableAndLeaveDecoderReusable() throws Exception {
+        LibRawDecoder decoder = new LibRawDecoder();
+        Path corrupt = Files.writeString(directory.resolve("corrupt-preview.raw"), "not a raw photograph");
+        assertThrows(IOException.class, () -> decoder.decodePreview(corrupt));
+        assertThrows(IOException.class, () -> decoder.decodePreview(directory.resolve("missing.raw")));
+        assertThrows(IOException.class, () -> new LibRawDecoder(directory.resolve("missing.so")).decodePreview(fixture()));
+        assertTrue(decoder.decodePreview(fixture()).pixels().length > 0);
+    }
+
+    @Test
     void developsCameraRawByContentWithUnicodeAndSpaces() throws Exception {
         Path renamed = directory.resolve("cámara con espacios.raw");
         Files.copy(fixture(), renamed);
