@@ -36,6 +36,7 @@ public final class RawViewerFrame extends JFrame {
     private boolean disposed;
     private volatile long generation;
     private Path directory;
+    private boolean mosaicComplete;
 
     public RawViewerFrame(RawImageDecoder decoder) {
         this(decoder, new PreferencesLastDirectory(Preferences.userNodeForPackage(Main.class)));
@@ -99,6 +100,7 @@ public final class RawViewerFrame extends JFrame {
         if (disposed) return;
         long request = ++generation;
         directory = path;
+        mosaicComplete = false;
         imagePanel.setImage(null);
         cards.show(content, "mosaic");
         backButton.setEnabled(false);
@@ -138,6 +140,7 @@ public final class RawViewerFrame extends JFrame {
                 try {
                     if (disposed || generation != request) return;
                     int count = get();
+                    mosaicComplete = true;
                     lastDirectory.save(path);
                     status.setText(count == 0 ? "No hay fotografías RAW en " + path : path + " · " + count + " fotografías RAW");
                 } catch (InterruptedException error) {
@@ -152,6 +155,10 @@ public final class RawViewerFrame extends JFrame {
     private record PreviewUpdate(List<Path> files, Path path, BufferedImage image, String error) {}
 
     private void showMosaic() {
+        if (!mosaicComplete) {
+            openDirectory(directory);
+            return;
+        }
         ++generation;
         imagePanel.setImage(null);
         cards.show(content, "mosaic");
