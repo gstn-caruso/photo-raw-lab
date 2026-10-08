@@ -130,7 +130,10 @@ public final class RawViewerFrame extends JFrame {
             @Override protected void process(List<PreviewUpdate> updates) {
                 if (disposed || generation != request) return;
                 for (PreviewUpdate update : updates) {
-                    if (update.files() != null) mosaic.showFiles(update.files());
+                    if (update.files() != null) {
+                        lastDirectory.save(path);
+                        mosaic.showFiles(update.files());
+                    }
                     else if (update.image() != null) mosaic.showPreview(update.path(), update.image());
                     else mosaic.showError(update.path(), update.error());
                 }
@@ -141,7 +144,6 @@ public final class RawViewerFrame extends JFrame {
                     if (disposed || generation != request) return;
                     int count = get();
                     mosaicComplete = true;
-                    lastDirectory.save(path);
                     status.setText(count == 0 ? "No hay fotografías RAW en " + path : path + " · " + count + " fotografías RAW");
                 } catch (InterruptedException error) {
                     Thread.currentThread().interrupt();

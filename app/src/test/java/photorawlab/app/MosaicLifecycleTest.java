@@ -24,10 +24,11 @@ class MosaicLifecycleTest {
         CountDownLatch enteredCurrent = new CountDownLatch(1), releaseCurrent = new CountDownLatch(1);
         CountDownLatch completed = new CountDownLatch(1);
         AtomicInteger notifications = new AtomicInteger();
+        java.util.concurrent.atomic.AtomicReference<Path> remembered = new java.util.concurrent.atomic.AtomicReference<>();
         RawViewerFrame[] frame = new RawViewerFrame[1];
         LastDirectory memory = new LastDirectory() {
             public Optional<Path> load() { return Optional.empty(); }
-            public void save(Path directory) { assertEquals(current, directory); }
+            public void save(Path directory) { remembered.set(directory); }
         };
         try {
             SwingUtilities.invokeAndWait(() -> {
@@ -53,6 +54,7 @@ class MosaicLifecycleTest {
                 assertNotNull(DirectoryMosaicTest.button(frame[0], "current.raw").getIcon());
             });
             assertEquals(1, notifications.get());
+            assertEquals(current, remembered.get());
         } finally {
             releaseOld.countDown(); releaseCurrent.countDown();
             SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
@@ -74,7 +76,7 @@ class MosaicLifecycleTest {
                     return new RgbImage(1, 1, new int[] {0xffffff});
                 }, new LastDirectory() {
                     public Optional<Path> load() { return Optional.empty(); }
-                    public void save(Path directory) { fail("Closed directory must not persist"); }
+                    public void save(Path directory) { assertEquals(root, directory); }
                 });
                 frame[0].openDirectory(root);
             });
