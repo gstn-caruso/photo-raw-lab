@@ -1,0 +1,28 @@
+package photorawlab.app;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+public final class RawDirectory {
+    private static final List<String> EXTENSIONS = List.of("raw", "cr2", "cr3", "crw", "nef", "nrw",
+            "arw", "dng", "kdc", "dcr", "orf", "rw2", "raf", "pef", "srw", "3fr", "fff", "iiq");
+
+    public static String[] extensions() { return EXTENSIONS.toArray(String[]::new); }
+
+    public List<Path> files(Path directory) throws IOException {
+        try (var entries = Files.list(directory)) {
+            return entries.filter(Files::isRegularFile).filter(this::isRaw)
+                    .sorted(Comparator.comparing(Path::toString)).toList();
+        }
+    }
+
+    private boolean isRaw(Path path) {
+        String name = path.getFileName().toString().toLowerCase(Locale.ROOT);
+        int dot = name.lastIndexOf('.');
+        return dot >= 0 && EXTENSIONS.contains(name.substring(dot + 1));
+    }
+}
