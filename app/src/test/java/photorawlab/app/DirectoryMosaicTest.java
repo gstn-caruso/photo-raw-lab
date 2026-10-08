@@ -36,6 +36,7 @@ class DirectoryMosaicTest {
                     public void save(Path path) {}
                 });
                 frame[0].addPropertyChangeListener("loading", event -> loaded.countDown());
+                frame[0].setVisible(true);
                 frame[0].openDirectory(directory);
             });
             assertTrue(loaded.await(5, TimeUnit.SECONDS));
@@ -53,9 +54,12 @@ class DirectoryMosaicTest {
             });
             assertTrue(opened.await(5, TimeUnit.SECONDS));
             SwingUtilities.invokeAndWait(() -> {
+                assertTrue(find(frame[0], RawImagePanel.class).isShowing());
+                assertFalse(button(frame[0], "b-good.raw").isShowing());
                 assertTrue(button(frame[0], "Volver al mosaico").isEnabled());
                 button(frame[0], "Volver al mosaico").doClick();
-                assertTrue(button(frame[0], "b-good.raw").isShowing() || !frame[0].isShowing());
+                assertTrue(button(frame[0], "b-good.raw").isShowing());
+                assertFalse(find(frame[0], RawImagePanel.class).isShowing());
             });
         } finally { SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); }); }
     }
@@ -113,6 +117,17 @@ class DirectoryMosaicTest {
             if (child instanceof JButton button && text.equals(button.getText())) return button;
             if (child instanceof Container container) {
                 JButton found = button(container, text);
+                if (found != null) return found;
+            }
+        }
+        return null;
+    }
+
+    private static <T> T find(Container parent, Class<T> type) {
+        for (Component child : parent.getComponents()) {
+            if (type.isInstance(child)) return type.cast(child);
+            if (child instanceof Container container) {
+                T found = find(container, type);
                 if (found != null) return found;
             }
         }
