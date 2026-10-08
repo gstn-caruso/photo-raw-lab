@@ -9,6 +9,7 @@ import java.lang.foreign.SymbolLookup;
 import java.lang.invoke.MethodHandle;
 import java.nio.file.Path;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import photorawlab.domain.RawImageDecoder;
 import photorawlab.domain.RgbImage;
@@ -46,13 +47,17 @@ public final class LibRawDecoder implements RawImageDecoder {
     public RgbImage decodePreview(Path path) throws IOException {
         Objects.requireNonNull(path, "path");
         try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library)) {
-            return session.preview(path, arena);
+            Optional<RgbImage> preview = session.preview(path, arena);
+            if (preview.isPresent()) {
+                return preview.get();
+            }
         } catch (IOException failure) {
-            return decode(path);
+            throw new IOException("Cannot decode preview " + path + ": " + failure.getMessage(), failure);
         } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
             throw new IOException("Cannot load LibRaw library " + library + ". Install LibRaw 0.21: "
                     + failure.getMessage(), failure);
         }
+        return decode(path);
     }
 
     private static final class NativeSession implements AutoCloseable {
@@ -104,9 +109,17 @@ public final class LibRawDecoder implements RawImageDecoder {
             return ProcessedBitmap.copyToRgb(bitmap);
         }
 
-        private RgbImage preview(Path path, Arena arena) throws IOException {
+        private Optional<RgbImage> preview(Path path, Arena arena) throws IOException {
             MemorySegment filename = arena.allocateFrom(path.toAbsolutePath().toString());
             check("open_file", (int) invoke(openFile, handler, filename));
+            try {
+                return Optional.of(thumbnail(arena));
+            } catch (IOException unavailableThumbnail) {
+                return Optional.empty();
+            }
+        }
+
+        private RgbImage thumbnail(Arena arena) throws IOException {
             check("unpack_thumb", (int) invoke(unpackThumbnail, handler));
             MemorySegment error = arena.allocate(JAVA_INT);
             bitmap = (MemorySegment) invoke(makeThumbnail, handler, error);
