@@ -4,6 +4,9 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Escala de interfaz calculada al arrancar según los DPI del escritorio Linux/X11, con overrides explícitos respetados y consulta `xrdb` acotada.
+- Dependencia Debian `x11-xserver-utils` para obtener la configuración DPI mediante `xrdb`.
+
 - Mosaico de previews RAW del directorio elegido, con carga secuencial en segundo plano, apertura de fotografías completas y vuelta al mosaico.
 - Último directorio recordado, selector inicial cuando falta y soporte de carpetas por línea de comandos.
 - Resultados obsoletos ignorados al cambiar de carpeta o cerrar; liberación de imágenes al cerrar y errores individuales recuperables.
