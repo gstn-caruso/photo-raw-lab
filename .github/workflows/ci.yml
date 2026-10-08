@@ -21,7 +21,8 @@ jobs:
       - name: Test
         run: |
           sudo apt-get update
-          sudo apt-get install -y libraw-dev xvfb
+          sudo apt-get install -y libraw-dev xvfb ruby ruby-minitest
+          ruby .github/release_version_test.rb
           env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
       - name: Require changelog entry in each PR
         if: github.event_name == 'pull_request'
@@ -35,30 +36,49 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Determine semantic release version
+        id: version
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ruby
+          ruby .github/release_version.rb >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v6
+        if: steps.version.outputs.release == 'true'
         with:
           distribution: temurin
           java-version: '25'
           cache: maven
       - name: Build versioned JAR
+        if: steps.version.outputs.release == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y libraw-dev xvfb
-          env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -Drevision=0.1.${{ github.run_number }} verify
+          env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -Drevision=${{ steps.version.outputs.version }} verify
       - name: Stage release JAR
-        run: install -D app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-0.1.${{ github.run_number }}.jar
+        if: steps.version.outputs.release == 'true'
+        run: install -D app/target/photo-raw-lab-app-${{ steps.version.outputs.version }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-${{ steps.version.outputs.version }}.jar
       - name: Package JAR with Java runtime
-        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-0.1.${{ github.run_number }}.jar --name photo-raw-lab --app-version 0.1.${{ github.run_number }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab --linux-package-deps libraw23t64 --java-options --enable-native-access=ALL-UNNAMED
+        if: steps.version.outputs.release == 'true'
+        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-${{ steps.version.outputs.version }}.jar --name photo-raw-lab --app-version ${{ steps.version.outputs.version }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab --linux-package-deps libraw23t64 --java-options --enable-native-access=ALL-UNNAMED
       - name: Verify embedded runtime
-        run: dpkg-deb -c ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
+        if: steps.version.outputs.release == 'true'
+        run: dpkg-deb -c ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
       - name: Verify native dependency and launcher
+        if: steps.version.outputs.release == 'true'
         run: |
-          dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb Depends | grep libraw23t64
-          dpkg-deb -x ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb ${{ runner.temp }}/package-smoke
+          dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb Depends | grep libraw23t64
+          dpkg-deb -x ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb ${{ runner.temp }}/package-smoke
           grep -- '--enable-native-access=ALL-UNNAMED' ${{ runner.temp }}/package-smoke/opt/photo-raw-lab/lib/app/photo-raw-lab.cfg
       - name: Open real RAW through Debian launcher
-        run: env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -pl app -am -Drevision=0.1.${{ github.run_number }} -Dphoto.raw.launcher=${{ runner.temp }}/package-smoke/opt/photo-raw-lab/bin/photo-raw-lab test-compile failsafe:integration-test failsafe:verify
+        if: steps.version.outputs.release == 'true'
+        run: env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -pl app -am -Drevision=${{ steps.version.outputs.version }} -Dphoto.raw.launcher=${{ runner.temp }}/package-smoke/opt/photo-raw-lab/bin/photo-raw-lab test-compile failsafe:integration-test failsafe:verify
+      - name: Stage versioned changelog
+        if: steps.version.outputs.release == 'true'
+        run: sed 's/^## Unreleased$/## ${{ steps.version.outputs.version }}/' CHANGELOG.md > ${{ runner.temp }}/CHANGELOG.md
       - name: Publish JAR and Debian package
+        if: steps.version.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create v0.1.${{ github.run_number }} app/target/photo-raw-lab-app-0.1.${{ github.run_number }}.jar ${{ runner.temp }}/photo-raw-lab_0.1.${{ github.run_number }}_amd64.deb CHANGELOG.md --title v0.1.${{ github.run_number }} --target ${{ github.sha }} --generate-notes
+        run: gh release create v${{ steps.version.outputs.version }} app/target/photo-raw-lab-app-${{ steps.version.outputs.version }}.jar ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb ${{ runner.temp }}/CHANGELOG.md --title v${{ steps.version.outputs.version }} --target ${{ github.sha }} --generate-notes
