@@ -225,6 +225,8 @@ public final class RawViewerFrame extends JFrame {
     public void dispose() {
         disposed = true;
         ++generation;
+        imagePanel.setImage(null);
+        mosaic.showFiles(List.of());
         super.dispose();
     }
 }
