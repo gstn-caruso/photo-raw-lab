@@ -17,6 +17,18 @@ class LibRawDecoderTest {
     Path directory;
 
     @Test
+    void extractsCameraThumbnailInsteadOfDevelopingFullRaw() throws Exception {
+        LibRawDecoder decoder = new LibRawDecoder();
+        RgbImage preview = decoder.decodePreview(fixture());
+        assertTrue(preview.width() <= 256, "Expected an embedded thumbnail, got " + preview.width());
+        assertTrue(preview.height() <= 256);
+        assertTrue(Arrays.stream(preview.pixels()).distinct().limit(2).count() > 1);
+        for (int attempt = 0; attempt < 3; attempt++) {
+            assertArrayEquals(preview.pixels(), decoder.decodePreview(fixture()).pixels());
+        }
+    }
+
+    @Test
     void developsCameraRawByContentWithUnicodeAndSpaces() throws Exception {
         Path renamed = directory.resolve("cámara con espacios.raw");
         Files.copy(fixture(), renamed);

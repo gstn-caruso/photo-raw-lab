@@ -42,11 +42,26 @@ public final class LibRawDecoder implements RawImageDecoder {
         }
     }
 
+    @Override
+    public RgbImage decodePreview(Path path) throws IOException {
+        Objects.requireNonNull(path, "path");
+        try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library)) {
+            return session.preview(path, arena);
+        } catch (IOException failure) {
+            return decode(path);
+        } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
+            throw new IOException("Cannot load LibRaw library " + library + ". Install LibRaw 0.21: "
+                    + failure.getMessage(), failure);
+        }
+    }
+
     private static final class NativeSession implements AutoCloseable {
         private final MethodHandle openFile;
         private final MethodHandle unpack;
+        private final MethodHandle unpackThumbnail;
         private final MethodHandle process;
         private final MethodHandle makeBitmap;
+        private final MethodHandle makeThumbnail;
         private final MethodHandle clearBitmap;
         private final MethodHandle closeHandler;
         private final MethodHandle outputBits;
@@ -61,8 +76,10 @@ public final class LibRawDecoder implements RawImageDecoder {
             MethodHandle init = function(symbols, "libraw_init", FunctionDescriptor.of(ADDRESS, JAVA_INT));
             openFile = function(symbols, "libraw_open_file", FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
             unpack = function(symbols, "libraw_unpack", FunctionDescriptor.of(JAVA_INT, ADDRESS));
+            unpackThumbnail = function(symbols, "libraw_unpack_thumb", FunctionDescriptor.of(JAVA_INT, ADDRESS));
             process = function(symbols, "libraw_dcraw_process", FunctionDescriptor.of(JAVA_INT, ADDRESS));
             makeBitmap = function(symbols, "libraw_dcraw_make_mem_image", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+            makeThumbnail = function(symbols, "libraw_dcraw_make_mem_thumb", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
             clearBitmap = function(symbols, "libraw_dcraw_clear_mem", FunctionDescriptor.ofVoid(ADDRESS));
             closeHandler = function(symbols, "libraw_close", FunctionDescriptor.ofVoid(ADDRESS));
             outputBits = function(symbols, "libraw_set_output_bps", FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
@@ -84,6 +101,16 @@ public final class LibRawDecoder implements RawImageDecoder {
             MemorySegment error = arena.allocate(JAVA_INT);
             bitmap = (MemorySegment) invoke(makeBitmap, handler, error);
             check("dcraw_make_mem_image", error.get(JAVA_INT, 0));
+            return ProcessedBitmap.copyToRgb(bitmap);
+        }
+
+        private RgbImage preview(Path path, Arena arena) throws IOException {
+            MemorySegment filename = arena.allocateFrom(path.toAbsolutePath().toString());
+            check("open_file", (int) invoke(openFile, handler, filename));
+            check("unpack_thumb", (int) invoke(unpackThumbnail, handler));
+            MemorySegment error = arena.allocate(JAVA_INT);
+            bitmap = (MemorySegment) invoke(makeThumbnail, handler, error);
+            check("dcraw_make_mem_thumb", error.get(JAVA_INT, 0));
             return ProcessedBitmap.copyToRgb(bitmap);
         }
 
