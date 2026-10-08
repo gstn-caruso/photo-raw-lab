@@ -4,7 +4,9 @@ Visor de fotografías RAW con Java 25, Swing y LibRaw mediante FFM. Al iniciar, 
 
 El mosaico incluye archivos RAW del directorio, sin recorrer subcarpetas, ordenados por nombre. Las previews aparecen en segundo plano; hacé clic para abrir una foto completa y usá **Volver al mosaico** para regresar. Los archivos que fallan quedan deshabilitados con el error en su tooltip; el resto continúa cargándose. **Abrir archivo…** también permite elegir una fotografía directamente.
 
-Las miniaturas conservan la proporción dentro de 240 × 180 píxeles. Cada preview requiere revelar el RAW completo con LibRaw, de a uno, por lo que carpetas grandes o archivos pesados pueden tardar. Al volver a un mosaico que todavía estaba cargando, se vuelve a cargar esa carpeta. Cambiar de carpeta o cerrar ignora resultados anteriores y deja terminar la llamada nativa en curso.
+Las miniaturas conservan la proporción dentro de 240 × 180 píxeles, sin agrandar previews pequeñas. El mosaico recupera primero la preview JPEG o RGB guardada por la cámara, sin revelar los datos del sensor: sus colores, recorte y resolución pueden diferir de la fotografía completa. Respeta la orientación EXIF del JPEG cuando está disponible y la orientación de cámara en los demás casos. Si la preview falta, su formato no está soportado o no se puede leer, revela el RAW completo como alternativa; esos archivos pueden tardar más. Abrir una fotografía sigue revelando el RAW completo.
+
+Las previews se cargan de a una en segundo plano. Al volver a un mosaico que todavía estaba cargando, se vuelve a cargar esa carpeta. Cambiar de carpeta o cerrar ignora resultados anteriores y deja terminar la llamada nativa en curso. La [verificación de previews](docs/verification/embedded-preview-tdd.md) registra los casos cubiertos y una comparación local de tiempos.
 
 ## Ejecutar
 
