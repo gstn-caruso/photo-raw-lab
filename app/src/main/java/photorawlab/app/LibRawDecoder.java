@@ -114,7 +114,7 @@ public final class LibRawDecoder implements RawImageDecoder {
             // LibRaw 0.21 amd64 ABI: image pointer, sizes (six ushorts, iheight/iwidth,
             // raw_pitch, padding, pixel_aspect), then sizes.flip at byte 40.
             int flip = handler.reinterpret(44).get(JAVA_INT, 40);
-            return PreviewOrientation.apply(ProcessedBitmap.copyToRgb(bitmap), flip);
+            return ProcessedBitmap.copyToRgb(bitmap, flip);
         }
 
         private void check(String operation, int code) throws IOException {

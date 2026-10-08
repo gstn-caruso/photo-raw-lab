@@ -11,6 +11,29 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class ProcessedBitmapTest {
     @Test
+    void respectsOrientationStoredInJpegPreview() throws Exception {
+        var source = new java.awt.image.BufferedImage(3, 2, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var output = new java.io.ByteArrayOutputStream();
+        assertTrue(javax.imageio.ImageIO.write(source, "jpeg", output));
+        byte[] jpeg = output.toByteArray();
+        byte[] exif = JpegOrientationTest.jpeg(java.nio.ByteOrder.LITTLE_ENDIAN, 6);
+        output.reset();
+        output.write(jpeg, 0, 2);
+        output.write(exif, 2, exif.length - 4);
+        output.write(jpeg, 2, jpeg.length - 2);
+        byte[] oriented = output.toByteArray();
+        try (Arena arena = Arena.ofConfined()) {
+            MemorySegment thumbnail = arena.allocate(16 + oriented.length, 4);
+            thumbnail.set(ValueLayout.JAVA_INT, 0, 1);
+            thumbnail.set(ValueLayout.JAVA_INT, 12, oriented.length);
+            thumbnail.asSlice(16).copyFrom(MemorySegment.ofArray(oriented));
+            RgbImage image = ProcessedBitmap.copyToRgb(thumbnail);
+            assertEquals(2, image.width());
+            assertEquals(3, image.height());
+        }
+    }
+
+    @Test
     void decodesEmbeddedJpegWithDimensionsFromItsPayload() throws Exception {
         var source = new java.awt.image.BufferedImage(2, 1, java.awt.image.BufferedImage.TYPE_INT_RGB);
         source.setRGB(0, 0, 0x336699);

@@ -15,6 +15,10 @@ final class ProcessedBitmap {
     private ProcessedBitmap() { }
 
     static RgbImage copyToRgb(MemorySegment pointer) throws IOException {
+        return copyToRgb(pointer, 0);
+    }
+
+    static RgbImage copyToRgb(MemorySegment pointer, int cameraFlip) throws IOException {
         if (pointer.address() == 0) {
             throw new IOException("LibRaw returned no processed bitmap");
         }
@@ -22,7 +26,7 @@ final class ProcessedBitmap {
         MemorySegment header = pointer.reinterpret(HEADER_SIZE);
         int type = header.get(ValueLayout.JAVA_INT, 0);
         if (type == JPEG) {
-            return copyJpegToRgb(pointer, Integer.toUnsignedLong(header.get(ValueLayout.JAVA_INT, 12)));
+            return copyJpegToRgb(pointer, Integer.toUnsignedLong(header.get(ValueLayout.JAVA_INT, 12)), cameraFlip);
         }
         int height = Short.toUnsignedInt(header.get(ValueLayout.JAVA_SHORT, 4));
         int width = Short.toUnsignedInt(header.get(ValueLayout.JAVA_SHORT, 6));
@@ -44,10 +48,10 @@ final class ProcessedBitmap {
             int blue = Byte.toUnsignedInt(bytes.get(ValueLayout.JAVA_BYTE, offset + 2));
             pixels[pixel] = (red << 16) | (green << 8) | blue;
         }
-        return new RgbImage(width, height, pixels);
+        return PreviewOrientation.apply(new RgbImage(width, height, pixels), cameraFlip);
     }
 
-    private static RgbImage copyJpegToRgb(MemorySegment pointer, long dataSize) throws IOException {
+    private static RgbImage copyJpegToRgb(MemorySegment pointer, long dataSize, int cameraFlip) throws IOException {
         if (dataSize == 0 || dataSize > Integer.MAX_VALUE) {
             throw new IOException("LibRaw returned an invalid JPEG size: " + dataSize);
         }
@@ -61,6 +65,7 @@ final class ProcessedBitmap {
         for (int pixel = 0; pixel < pixels.length; pixel++) {
             pixels[pixel] &= 0xffffff;
         }
-        return new RgbImage(image.getWidth(), image.getHeight(), pixels);
+        return PreviewOrientation.apply(new RgbImage(image.getWidth(), image.getHeight(), pixels),
+                JpegOrientation.flip(bytes, cameraFlip));
     }
 }
