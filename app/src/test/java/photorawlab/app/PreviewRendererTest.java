@@ -6,6 +6,15 @@ import org.junit.jupiter.api.Test;
 import photorawlab.domain.RgbImage;
 
 class PreviewRendererTest {
+    @Test void requestsPreviewWithoutDevelopingFullRaw() throws Exception {
+        var decoder = new photorawlab.domain.RawImageDecoder() {
+            public RgbImage decode(Path path) { fail("Full RAW development is unnecessary for a preview"); return null; }
+            public RgbImage decodePreview(Path path) { return new RgbImage(1, 1, new int[] {0x123456}); }
+        };
+        var preview = new PreviewRenderer(decoder).render(Path.of("camera.raw"));
+        assertEquals(0x123456, preview.getRGB(0, 0) & 0xffffff);
+    }
+
     @Test void preservesAspectRatioBoundsAndPhotographicPixels() throws Exception {
         int[] pixels = new int[800 * 400];
         java.util.Arrays.fill(pixels, 0x4080c0);

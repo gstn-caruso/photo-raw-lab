@@ -4,6 +4,8 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Previews rápidas desde el JPEG o bitmap RGB embebido por la cámara, con orientación y fallback al revelado completo cuando la miniatura no es utilizable. Abrir una fotografía conserva el revelado RAW completo.
+
 - Escala de interfaz calculada al arrancar según los DPI del escritorio Linux/X11, con overrides explícitos respetados y consulta `xrdb` acotada.
 - Dependencia Debian `x11-xserver-utils` para obtener la configuración DPI mediante `xrdb`.
 
