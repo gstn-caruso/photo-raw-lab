@@ -28,6 +28,10 @@ java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar "/ruta/fotografías"
 
 El JAR necesita Java 25 y `libraw.so.23`. Los launchers habilitan el [acceso nativo de FFM](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/foreign/SymbolLookup.html). El decoder usa la [API C de LibRaw](https://www.libraw.org/docs/API-C.html) para revelar los datos RAW completos a RGB sRGB de 8 bits. Identifica el formato por el contenido: acepta `.raw`, CR2/CR3, NEF, ARW, DNG, KDC y otros formatos soportados por la biblioteca instalada. Un volcado de sensor sin cabecera no identifica por sí solo cámara y dimensiones.
 
+En Linux con `DISPLAY`, la aplicación consulta `Xft.dpi` mediante `xrdb` antes de iniciar Swing. Convierte DPI/96 al entero más cercano: 192 DPI usa escala 2 y 288 DPI usa 3. Sólo aplica escalas de 2 o más, con DPI válidos entre 96 y 768; ante un dato ausente, inválido o una consulta fallida, Java conserva su escala automática. El paquete Debian incluye la dependencia `x11-xserver-utils`, que provee `xrdb`.
+
+Se respetan los ajustes explícitos `-Dsun.java2d.uiScale=…`, `-Dsun.java2d.uiScale.enabled=false`, `J2D_UISCALE` y `GDK_SCALE`. La consulta dura como máximo 750 ms y la escala se decide al arrancar: si cambiás los DPI del escritorio o de monitor, reiniciá la aplicación. Java limita el escalado de Linux/X11 a factores enteros; los ajustes Java están documentados en [Java 2D Properties](https://docs.oracle.com/en/java/javase/25/troubleshoot/java-2d-properties.html).
+
 ## Testear
 
 `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify`
