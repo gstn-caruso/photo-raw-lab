@@ -9,6 +9,7 @@ import photorawlab.domain.RawImageDecoder;
 public final class Main {
 
     public static void main(String[] args) {
+        DesktopScale.configure();
         start(args, new LibRawDecoder(), new PreferencesLastDirectory(Preferences.userNodeForPackage(Main.class)));
     }
 

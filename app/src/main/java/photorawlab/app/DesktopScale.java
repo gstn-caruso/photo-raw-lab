@@ -1,7 +1,10 @@
 package photorawlab.app;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 public final class DesktopScale {
     private final Properties properties;
@@ -14,13 +17,23 @@ public final class DesktopScale {
         this.resources = resources;
     }
 
+    public static void configure() {
+        new DesktopScale(System.getProperties(), System.getenv(), DesktopScale::queryXResources).apply();
+    }
+
     public void apply() {
         if (!properties.getProperty("os.name", "").equals("Linux")
                 || environment.getOrDefault("DISPLAY", "").isBlank()
                 || properties.containsKey("sun.java2d.uiScale")
                 || properties.getProperty("sun.java2d.uiScale.enabled", "true").equalsIgnoreCase("false")
                 || environment.containsKey("J2D_UISCALE") || environment.containsKey("GDK_SCALE")) return;
-        String text = resources.read();
+        String text;
+        try { text = resources.read(); }
+        catch (IOException error) { return; }
+        catch (InterruptedException error) {
+            Thread.currentThread().interrupt();
+            return;
+        }
         for (String line : text.lines().toList()) {
             String[] entry = line.split(":", 2);
             if (entry.length != 2 || !entry[0].trim().equals("Xft.dpi")) continue;
@@ -34,6 +47,17 @@ public final class DesktopScale {
         }
     }
 
+    private static String queryXResources() throws IOException, InterruptedException {
+        Process query = new ProcessBuilder("xrdb", "-query").redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        try (var output = query.getInputStream(); var input = query.getOutputStream(); var errors = query.getErrorStream()) {
+            try {
+                if (!query.waitFor(750, TimeUnit.MILLISECONDS)) throw new IOException("xrdb query timed out");
+                if (query.exitValue() != 0) throw new IOException("xrdb query failed");
+                return new String(output.readAllBytes(), StandardCharsets.UTF_8);
+            } finally { query.destroyForcibly(); }
+        }
+    }
+
     @FunctionalInterface
-    public interface XResources { String read(); }
+    public interface XResources { String read() throws IOException, InterruptedException; }
 }

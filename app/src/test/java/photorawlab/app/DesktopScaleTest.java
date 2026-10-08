@@ -72,6 +72,27 @@ class DesktopScaleTest {
         assertEquals("2", properties.getProperty("sun.java2d.uiScale"));
     }
 
+    @Test void unavailableOrTimedOutResourceQueryDoesNotPreventStartup() {
+        for (String reason : new String[] {"xrdb missing", "xrdb query timed out", "xrdb failed"}) {
+            Properties properties = linux();
+            assertDoesNotThrow(() -> new DesktopScale(properties, Map.of("DISPLAY", ":0"), () -> {
+                throw new java.io.IOException(reason);
+            }).apply());
+            assertNull(properties.getProperty("sun.java2d.uiScale"));
+        }
+    }
+
+    @Test void interruptedQueryPreservesInterruptFlagAndLeavesScaleAutomatic() {
+        Properties properties = linux();
+        try {
+            assertDoesNotThrow(() -> new DesktopScale(properties, Map.of("DISPLAY", ":0"), () -> {
+                throw new InterruptedException("Startup interrupted");
+            }).apply());
+            assertTrue(Thread.currentThread().isInterrupted());
+            assertNull(properties.getProperty("sun.java2d.uiScale"));
+        } finally { Thread.interrupted(); }
+    }
+
     private static Properties linux() {
         Properties properties = new Properties();
         properties.setProperty("os.name", "Linux");
