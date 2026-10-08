@@ -69,6 +69,28 @@ class LibRawDecoderTest {
     }
 
     @Test
+    void reportsCorruptPreviewFileWithOpeningContextAndNativeCause() throws Exception {
+        Path corrupt = Files.writeString(directory.resolve("corrupt-preview-diagnostic.raw"), "not a raw photograph");
+        assertPreviewOpeningFailure(corrupt);
+    }
+
+    @Test
+    void reportsMissingPreviewFileWithOpeningContextAndNativeCause() {
+        assertPreviewOpeningFailure(directory.resolve("missing-preview-diagnostic.raw"));
+    }
+
+    private void assertPreviewOpeningFailure(Path path) {
+        IOException failure = assertThrows(IOException.class, () -> new LibRawDecoder().decodePreview(path));
+        assertAll(
+                () -> assertTrue(failure.getMessage().startsWith("Cannot decode preview " + path + ": LibRaw open_file failed"),
+                        failure.getMessage()),
+                () -> {
+                    IOException cause = assertInstanceOf(IOException.class, failure.getCause());
+                    assertTrue(cause.getMessage().startsWith("LibRaw open_file failed"), cause.getMessage());
+                });
+    }
+
+    @Test
     void previewErrorsAreRecoverableAndLeaveDecoderReusable() throws Exception {
         LibRawDecoder decoder = new LibRawDecoder();
         Path corrupt = Files.writeString(directory.resolve("corrupt-preview.raw"), "not a raw photograph");
