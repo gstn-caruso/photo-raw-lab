@@ -21,7 +21,7 @@ jobs:
       - name: Test
         run: |
           sudo apt-get update
-          sudo apt-get install -y libraw-dev xvfb ruby ruby-minitest
+          sudo apt-get install -y libraw-dev xvfb x11-xserver-utils ruby ruby-minitest
           ruby .github/release_version_test.rb
           env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
       - name: Require changelog entry in each PR
@@ -54,14 +54,14 @@ jobs:
         if: steps.version.outputs.release == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libraw-dev xvfb
+          sudo apt-get install -y libraw-dev xvfb x11-xserver-utils
           env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -Drevision=${{ steps.version.outputs.version }} verify
       - name: Stage release JAR
         if: steps.version.outputs.release == 'true'
         run: install -D app/target/photo-raw-lab-app-${{ steps.version.outputs.version }}.jar ${{ runner.temp }}/jpackage-input/photo-raw-lab-app-${{ steps.version.outputs.version }}.jar
       - name: Package JAR with Java runtime
         if: steps.version.outputs.release == 'true'
-        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-${{ steps.version.outputs.version }}.jar --name photo-raw-lab --app-version ${{ steps.version.outputs.version }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab --linux-package-deps libraw23t64 --java-options --enable-native-access=ALL-UNNAMED
+        run: jpackage --type deb --input ${{ runner.temp }}/jpackage-input --main-jar photo-raw-lab-app-${{ steps.version.outputs.version }}.jar --name photo-raw-lab --app-version ${{ steps.version.outputs.version }} --dest ${{ runner.temp }} --linux-package-name photo-raw-lab --linux-package-deps libraw23t64,x11-xserver-utils --java-options --enable-native-access=ALL-UNNAMED
       - name: Verify embedded runtime
         if: steps.version.outputs.release == 'true'
         run: dpkg-deb -c ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb | grep '/lib/runtime/lib/server/libjvm.so'
@@ -69,6 +69,7 @@ jobs:
         if: steps.version.outputs.release == 'true'
         run: |
           dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb Depends | grep libraw23t64
+          dpkg-deb -f ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb Depends | grep x11-xserver-utils
           dpkg-deb -x ${{ runner.temp }}/photo-raw-lab_${{ steps.version.outputs.version }}_amd64.deb ${{ runner.temp }}/package-smoke
           grep -- '--enable-native-access=ALL-UNNAMED' ${{ runner.temp }}/package-smoke/opt/photo-raw-lab/lib/app/photo-raw-lab.cfg
       - name: Open real RAW through Debian launcher
