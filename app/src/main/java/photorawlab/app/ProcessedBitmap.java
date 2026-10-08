@@ -1,13 +1,16 @@
 package photorawlab.app;
 
 import java.io.IOException;
+import java.io.ByteArrayInputStream;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
+import javax.imageio.ImageIO;
 import photorawlab.domain.RgbImage;
 
 final class ProcessedBitmap {
     private static final long HEADER_SIZE = 16;
     private static final int RGB_BITMAP = 2;
+    private static final int JPEG = 1;
 
     private ProcessedBitmap() { }
 
@@ -18,6 +21,9 @@ final class ProcessedBitmap {
         // LibRaw 0.21 libraw_processed_image_t: int type, four ushorts, uint data_size, RGB data.
         MemorySegment header = pointer.reinterpret(HEADER_SIZE);
         int type = header.get(ValueLayout.JAVA_INT, 0);
+        if (type == JPEG) {
+            return copyJpegToRgb(pointer, Integer.toUnsignedLong(header.get(ValueLayout.JAVA_INT, 12)));
+        }
         int height = Short.toUnsignedInt(header.get(ValueLayout.JAVA_SHORT, 4));
         int width = Short.toUnsignedInt(header.get(ValueLayout.JAVA_SHORT, 6));
         int channels = Short.toUnsignedInt(header.get(ValueLayout.JAVA_SHORT, 8));
@@ -39,5 +45,22 @@ final class ProcessedBitmap {
             pixels[pixel] = (red << 16) | (green << 8) | blue;
         }
         return new RgbImage(width, height, pixels);
+    }
+
+    private static RgbImage copyJpegToRgb(MemorySegment pointer, long dataSize) throws IOException {
+        if (dataSize == 0 || dataSize > Integer.MAX_VALUE) {
+            throw new IOException("LibRaw returned an invalid JPEG size: " + dataSize);
+        }
+        byte[] bytes = pointer.reinterpret(HEADER_SIZE + dataSize).asSlice(HEADER_SIZE, dataSize)
+                .toArray(ValueLayout.JAVA_BYTE);
+        var image = ImageIO.read(new ByteArrayInputStream(bytes));
+        if (image == null) {
+            throw new IOException("LibRaw returned an unreadable JPEG thumbnail");
+        }
+        int[] pixels = image.getRGB(0, 0, image.getWidth(), image.getHeight(), null, 0, image.getWidth());
+        for (int pixel = 0; pixel < pixels.length; pixel++) {
+            pixels[pixel] &= 0xffffff;
+        }
+        return new RgbImage(image.getWidth(), image.getHeight(), pixels);
     }
 }
