@@ -111,7 +111,10 @@ public final class LibRawDecoder implements RawImageDecoder {
             MemorySegment error = arena.allocate(JAVA_INT);
             bitmap = (MemorySegment) invoke(makeThumbnail, handler, error);
             check("dcraw_make_mem_thumb", error.get(JAVA_INT, 0));
-            return ProcessedBitmap.copyToRgb(bitmap);
+            // LibRaw 0.21 amd64 ABI: image pointer, sizes (six ushorts, iheight/iwidth,
+            // raw_pitch, padding, pixel_aspect), then sizes.flip at byte 40.
+            int flip = handler.reinterpret(44).get(JAVA_INT, 40);
+            return PreviewOrientation.apply(ProcessedBitmap.copyToRgb(bitmap), flip);
         }
 
         private void check(String operation, int code) throws IOException {

@@ -17,6 +17,20 @@ class LibRawDecoderTest {
     Path directory;
 
     @Test
+    void appliesCameraOrientationToEmbeddedBitmap() throws Exception {
+        byte[] cameraFile = Files.readAllBytes(fixture());
+        var tiff = java.nio.ByteBuffer.wrap(cameraFile).order(java.nio.ByteOrder.BIG_ENDIAN);
+        assertEquals(0x0112, Short.toUnsignedInt(tiff.getShort(0x82)));
+        assertEquals(0x0112, Short.toUnsignedInt(tiff.getShort(0x2c6)));
+        tiff.putShort(0x8a, (short) 6);
+        tiff.putShort(0x2ce, (short) 6);
+        Path portrait = Files.write(directory.resolve("portrait.raw"), cameraFile);
+        RgbImage preview = new LibRawDecoder().decodePreview(portrait);
+        assertEquals(64, preview.width());
+        assertEquals(96, preview.height());
+    }
+
+    @Test
     void extractsCameraThumbnailInsteadOfDevelopingFullRaw() throws Exception {
         LibRawDecoder decoder = new LibRawDecoder();
         RgbImage preview = decoder.decodePreview(fixture());
