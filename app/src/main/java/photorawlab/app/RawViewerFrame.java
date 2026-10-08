@@ -5,6 +5,8 @@ import java.awt.CardLayout;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
+import java.util.prefs.Preferences;
 import java.util.concurrent.ExecutionException;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -19,6 +21,7 @@ import photorawlab.domain.RawImageDecoder;
 
 public final class RawViewerFrame extends JFrame {
     private final RawImageDecoder decoder;
+    private final LastDirectory lastDirectory;
     private final RawImagePanel imagePanel = new RawImagePanel();
     private final DirectoryMosaicPanel mosaic = new DirectoryMosaicPanel(this::openRaw);
     private final CardLayout cards = new CardLayout();
@@ -35,8 +38,13 @@ public final class RawViewerFrame extends JFrame {
     private Path directory;
 
     public RawViewerFrame(RawImageDecoder decoder) {
+        this(decoder, new PreferencesLastDirectory(Preferences.userNodeForPackage(Main.class)));
+    }
+
+    public RawViewerFrame(RawImageDecoder decoder, LastDirectory lastDirectory) {
         super("Photo RAW Lab");
         this.decoder = decoder;
+        this.lastDirectory = lastDirectory;
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1000, 700);
         setLocationByPlatform(true);
@@ -69,11 +77,21 @@ public final class RawViewerFrame extends JFrame {
     }
 
     private void chooseDirectory() {
+        pickDirectory().ifPresent(this::openDirectory);
+    }
+
+    private Optional<Path> pickDirectory() {
         JFileChooser chooser = new JFileChooser();
         chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            openDirectory(chooser.getSelectedFile().toPath());
+            return Optional.of(chooser.getSelectedFile().toPath());
         }
+        return Optional.empty();
+    }
+
+    public void openStartupDirectory() {
+        requireEdt();
+        new StartupDirectory(lastDirectory).select(this::pickDirectory).ifPresent(this::openDirectory);
     }
 
     public void openDirectory(Path path) {
@@ -120,6 +138,7 @@ public final class RawViewerFrame extends JFrame {
                 try {
                     if (disposed || generation != request) return;
                     int count = get();
+                    lastDirectory.save(path);
                     status.setText(count == 0 ? "No hay fotografías RAW en " + path : path + " · " + count + " fotografías RAW");
                 } catch (InterruptedException error) {
                     Thread.currentThread().interrupt();
