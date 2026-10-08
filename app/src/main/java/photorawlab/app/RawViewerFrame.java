@@ -178,7 +178,7 @@ public final class RawViewerFrame extends JFrame {
             progress.setVisible(false);
             openButton.setEnabled(true);
         }
-        firePropertyChange("loading", true, false);
+        if (disposed || generation == request) firePropertyChange("loading", true, false);
     }
 
     public void openRaw(Path path) {
