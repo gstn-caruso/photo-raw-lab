@@ -77,7 +77,7 @@ class GalleryControlsTest {
         var graphics = painted.createGraphics();
         try { tile.getIcon().paintIcon(tile, graphics, 0, 0); }
         finally { graphics.dispose(); }
-        assertEquals(expected, painted.getRGB(120, 90) & 0xffffff);
+        assertEquals(expected, painted.getRGB(119, 89) & 0xffffff);
     }
 
     static DirectoryMosaicPanel findMosaic(Container container) {
