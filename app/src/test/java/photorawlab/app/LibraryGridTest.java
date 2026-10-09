@@ -27,11 +27,11 @@ class LibraryGridTest {
                     mosaic.showFiles(IntStream.range(0, 6).mapToObj(index -> Path.of(index + ".raw")).toList());
                     frames[i] = new JFrame();
                     frames[i].setContentPane(mosaic);
-                    frames[i].setSize(i == 0 ? 826 : 850, 750);
+                    frames[i].setSize(i == 0 ? 826 : 850, 900);
                     frames[i].setVisible(true);
                 }
             });
-            SwingUtilities.invokeAndWait(() -> frames[1].setSize(826, 750));
+            SwingUtilities.invokeAndWait(() -> frames[1].setSize(826, 900));
             SwingUtilities.invokeAndWait(() -> {
                 for (JFrame frame : frames) {
                     DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
