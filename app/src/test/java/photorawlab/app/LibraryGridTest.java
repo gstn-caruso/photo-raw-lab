@@ -27,11 +27,11 @@ class LibraryGridTest {
                     mosaic.showFiles(IntStream.range(0, 6).mapToObj(index -> Path.of(index + ".raw")).toList());
                     frames[i] = new JFrame();
                     frames[i].setContentPane(mosaic);
-                    frames[i].setSize(i == 0 ? 806 : 850, 500);
+                    frames[i].setSize(i == 0 ? 806 : 850, 540);
                     frames[i].setVisible(true);
                 }
             });
-            SwingUtilities.invokeAndWait(() -> frames[1].setSize(806, 500));
+            SwingUtilities.invokeAndWait(() -> frames[1].setSize(806, 540));
             SwingUtilities.invokeAndWait(() -> {
                 for (JFrame frame : frames) {
                     DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
@@ -39,7 +39,7 @@ class LibraryGridTest {
                     assertEquals(0, tiles(mosaic).getComponent(2).getY(), "Three columns should fit at 806");
                     assertEquals(464, tiles(mosaic).getHeight());
                     assertFalse(scroll.getVerticalScrollBar().isVisible());
-                    frame.setSize(570, 500);
+                    frame.setSize(570, 540);
                 }
             });
             SwingUtilities.invokeAndWait(() -> {
@@ -81,7 +81,7 @@ class LibraryGridTest {
                 }
                 frame[0] = new JFrame();
                 frame[0].setContentPane(mosaic);
-                frame[0].setSize(1080, 730);
+                frame[0].setSize(1080, 770);
                 frame[0].setVisible(true);
                 frame[0].validate();
             });

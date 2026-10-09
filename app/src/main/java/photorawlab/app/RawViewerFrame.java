@@ -121,10 +121,11 @@ public final class RawViewerFrame extends JFrame {
         beginLoading("Leyendo " + path + "…");
         new SwingWorker<Integer, PreviewUpdate>() {
             @Override protected Integer doInBackground() throws Exception {
-                List<Path> files = new RawDirectory().files(path);
+                List<RawDirectory.Entry> files = new RawDirectory().snapshot(path);
                 publish(new PreviewUpdate(files, null, null, null));
                 PreviewRenderer renderer = new PreviewRenderer(decoder);
-                for (Path file : files) {
+                for (var entry : files) {
+                    Path file = entry.path();
                     if (generation != request) return files.size();
                     try {
                         BufferedImage preview;
@@ -145,7 +146,7 @@ public final class RawViewerFrame extends JFrame {
                 for (PreviewUpdate update : updates) {
                     if (update.files() != null) {
                         lastDirectory.save(path);
-                        mosaic.showFiles(update.files());
+                        mosaic.showEntries(update.files());
                     }
                     else if (update.image() != null) mosaic.showPreview(update.path(), update.image());
                     else mosaic.showError(update.path(), update.error());
@@ -167,7 +168,7 @@ public final class RawViewerFrame extends JFrame {
         }.execute();
     }
 
-    private record PreviewUpdate(List<Path> files, Path path, BufferedImage image, String error) {}
+    private record PreviewUpdate(List<RawDirectory.Entry> files, Path path, BufferedImage image, String error) {}
 
     private void showMosaic() {
         if (!mosaicComplete) {

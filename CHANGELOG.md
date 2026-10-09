@@ -4,6 +4,8 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Controles de orden del mosaico por nombre, fecha de modificación y tamaño, ascendente o descendente; conservan previews y errores durante la carga y la selección durante la sesión.
+
 - Grilla de biblioteca inspirada en Lightroom: columnas adaptables al ancho de la ventana, celdas uniformes sin estirar filas incompletas, nombre superior, fotografías centradas y desplazamiento vertical.
 
 - Paleta neutra de grises inspirada en Lightroom: galería con celdas gris medio, separadores finos y nombres claros; barra, controles y visor en gris oscuro.
