@@ -12,6 +12,59 @@ import org.junit.jupiter.api.Test;
 class GalleryControlsTest {
     @org.junit.jupiter.api.io.TempDir Path directory;
 
+    @Test void sortingPreferencesSurvivePhotoNavigationAndChangingDirectories() throws Exception {
+        Path alpha = java.nio.file.Files.createFile(directory.resolve("a.raw"));
+        java.nio.file.Files.createFile(directory.resolve("b.raw"));
+        java.nio.file.Files.setLastModifiedTime(alpha, java.nio.file.attribute.FileTime.from(java.time.Instant.EPOCH));
+        Path next = java.nio.file.Files.createDirectory(directory.resolve("next"));
+        java.nio.file.Files.createFile(next.resolve("c.raw"));
+        java.nio.file.Files.createFile(next.resolve("d.raw"));
+        var completions = new java.util.concurrent.LinkedBlockingQueue<Boolean>();
+        var decodes = new java.util.concurrent.atomic.AtomicInteger();
+        RawViewerFrame[] frame = new RawViewerFrame[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                frame[0] = new RawViewerFrame(path -> {
+                    decodes.incrementAndGet();
+                    return new photorawlab.domain.RgbImage(1, 1, new int[] {0xff0000});
+                }, new LastDirectory() {
+                    public java.util.Optional<Path> load() { return java.util.Optional.empty(); }
+                    public void save(Path path) {}
+                });
+                frame[0].addPropertyChangeListener("loading", event -> completions.add(true));
+                frame[0].openDirectory(directory);
+            });
+            assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> {
+                var mosaic = findMosaic(frame[0]);
+                var controls = (JPanel) mosaic.getComponent(1);
+                ((JComboBox<?>) controls.getComponent(1)).setSelectedIndex(1);
+                ((JComboBox<?>) controls.getComponent(3)).setSelectedIndex(1);
+                assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
+                frame[0].openRaw(alpha);
+            });
+            assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> {
+                DirectoryMosaicTest.button(frame[0], "Volver al mosaico").doClick();
+                var mosaic = findMosaic(frame[0]);
+                assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
+                assertPreferences(mosaic);
+                assertEquals(3, decodes.get(), "Returning to completed mosaic must reuse previews");
+                frame[0].openDirectory(next);
+            });
+            assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> assertPreferences(findMosaic(frame[0])));
+        } finally {
+            SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
+        }
+    }
+
+    private static void assertPreferences(DirectoryMosaicPanel mosaic) {
+        var controls = (JPanel) mosaic.getComponent(1);
+        assertEquals(1, ((JComboBox<?>) controls.getComponent(1)).getSelectedIndex());
+        assertEquals(1, ((JComboBox<?>) controls.getComponent(3)).getSelectedIndex());
+    }
+
     @Test void sortingDuringDecodeUsesMetadataAndKeepsPendingPreviewAttachedToItsPath() throws Exception {
         Path alpha = java.nio.file.Files.write(directory.resolve("a.raw"), new byte[20]);
         Path beta = java.nio.file.Files.write(directory.resolve("b.raw"), new byte[10]);
