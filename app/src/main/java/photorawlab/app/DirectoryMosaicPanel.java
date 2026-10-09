@@ -16,6 +16,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
+import javax.swing.SwingUtilities;
 
 public final class DirectoryMosaicPanel extends JPanel {
     private final JPanel tiles = new LibraryGrid();
@@ -105,8 +106,27 @@ public final class DirectoryMosaicPanel extends JPanel {
 
         @Override
         public Dimension getPreferredSize() {
-            int rows = (getComponentCount() + columns() - 1) / columns();
-            return new Dimension(CELL_WIDTH, rows * CELL_HEIGHT);
+            JScrollPane scroll = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, this);
+            if (scroll == null || scroll.getWidth() == 0) {
+                return new Dimension(CELL_WIDTH, rowsForWidth(3 * CELL_WIDTH) * CELL_HEIGHT);
+            }
+            var insets = scroll.getInsets();
+            int width = scroll.getWidth() - insets.left - insets.right;
+            int height = scroll.getHeight() - insets.top - insets.bottom;
+            if (scroll.getViewportBorder() != null) {
+                var border = scroll.getViewportBorder().getBorderInsets(scroll);
+                width -= border.left + border.right;
+                height -= border.top + border.bottom;
+            }
+            if (rowsForWidth(width) * CELL_HEIGHT > height) {
+                width -= scroll.getVerticalScrollBar().getPreferredSize().width;
+            }
+            return new Dimension(CELL_WIDTH, rowsForWidth(width) * CELL_HEIGHT);
+        }
+
+        private int rowsForWidth(int width) {
+            int columns = Math.max(1, width / CELL_WIDTH);
+            return (getComponentCount() + columns - 1) / columns;
         }
 
         @Override

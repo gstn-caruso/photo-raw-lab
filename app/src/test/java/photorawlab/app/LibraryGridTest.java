@@ -18,6 +18,49 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 class LibraryGridTest {
     @Test
+    void openingAndResizingToTheSameWidthProduceTheSameGridAndReachTheLastRow() throws Exception {
+        JFrame[] frames = new JFrame[2];
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                for (int i = 0; i < frames.length; i++) {
+                    DirectoryMosaicPanel mosaic = new DirectoryMosaicPanel(path -> {});
+                    mosaic.showFiles(IntStream.range(0, 6).mapToObj(index -> Path.of(index + ".raw")).toList());
+                    frames[i] = new JFrame();
+                    frames[i].setContentPane(mosaic);
+                    frames[i].setSize(i == 0 ? 806 : 850, 500);
+                    frames[i].setVisible(true);
+                }
+            });
+            SwingUtilities.invokeAndWait(() -> frames[1].setSize(806, 500));
+            SwingUtilities.invokeAndWait(() -> {
+                for (JFrame frame : frames) {
+                    DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
+                    JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
+                    assertEquals(0, tiles(mosaic).getComponent(2).getY(), "Three columns should fit at 806");
+                    assertEquals(464, tiles(mosaic).getHeight());
+                    assertFalse(scroll.getVerticalScrollBar().isVisible());
+                    frame.setSize(570, 500);
+                }
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                for (JFrame frame : frames) {
+                    DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
+                    JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
+                    assertEquals(696, tiles(mosaic).getHeight());
+                    assertTrue(scroll.getVerticalScrollBar().isVisible());
+                    scroll.getVerticalScrollBar().setValue(scroll.getVerticalScrollBar().getMaximum());
+                    assertEquals(696, scroll.getViewport().getViewRect().y + scroll.getViewport().getExtentSize().height);
+                    assertEquals(696, tiles(mosaic).getComponent(5).getY() + tiles(mosaic).getComponent(5).getHeight());
+                }
+            });
+        } finally {
+            SwingUtilities.invokeAndWait(() -> {
+                for (JFrame frame : frames) if (frame != null) frame.dispose();
+            });
+        }
+    }
+
+    @Test
     @EnabledIfSystemProperty(named = "libraryGridScreenshot", matches = ".+")
     void rendersLibraryGridForVisualInspection() throws Exception {
         Path fixture = Path.of(getClass().getResource("/raw/kodak-dc50.kdc").toURI());

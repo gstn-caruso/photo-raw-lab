@@ -33,3 +33,9 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -pl app -am test -
 Límites: tamaños expresados en coordenadas Swing; nombres largos se recortan con el comportamiento estándar de JButton. Por debajo del ancho de una celda, el viewport recorta la celda y conserva desplazamiento exclusivamente vertical. No se agregan ratings, barras laterales ni otras herramientas de Lightroom.
 
 Verificación final: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify` verde: 2 tests dominio, 53 app (1 omitido: captura opcional), 1 integración. La ejecución focal con `libraryGridScreenshot` pasó los 3 tests y produjo el PNG; inspección manual confirmó cuatro columnas, nombre superior, previews centradas, celda de error y última fila sin estirar. Conservados los tests existentes de carga asíncrona, errores, apertura y regreso.
+
+## Review: cálculo estable de columnas y scroll
+
+Expectativa: abrir directamente en 806 × 500 con seis fotos debe dar la misma geometría que redimensionar de 850 a 806: tres columnas, dos filas, sin scrollbar. En 570 × 500, dos columnas y tres filas; desplazar al máximo debe mostrar completa la última fila.
+
+Red: `openingAndResizingToTheSameWidthProduceTheSameGridAndReachTheLastRow` falla: tercera celda en y=232 en vez de y=0 al abrir directamente. El tamaño preferido usaba el ancho anterior de la grilla, por lo que la scrollbar afectaba su propia necesidad. Green: cálculo desde el espacio disponible del JScrollPane, restando bordes y reservando scrollbar sólo si la altura de filas la necesita. Test focal verifica apertura y resize iguales, altura 464 sin scroll y 696 con scroll; extremo inferior del viewport y última celda coinciden en y=696.
