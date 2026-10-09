@@ -57,6 +57,10 @@ final class PhotoTile extends JButton {
     private static String decimal(double value) { return String.format(Locale.ROOT, "%.1f", value).replaceFirst("\\.0$", ""); }
 
     private static String exposure(double seconds) {
-        return seconds < 1 ? "1/" + Math.round(1 / seconds) + " s" : decimal(seconds) + " s";
+        long denominator = Math.round(1 / seconds);
+        if (seconds < 1 && denominator > 1 && 1.0 / denominator == seconds) {
+            return "1/" + denominator + " s";
+        }
+        return java.math.BigDecimal.valueOf(seconds).stripTrailingZeros().toPlainString() + " s";
     }
 }

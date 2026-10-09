@@ -19,6 +19,7 @@ La rama de trabajo fue `feat/lightroom-library-metadata`, en el checkout origina
 | Preview tardía oculta | La conservación por ruta ya resolvía este caso | `GalleryControlsTest`: decoder bloqueado mediante latch; filtrar/ordenar durante carga, recibir preview oculta, quitar filtro y conservar el icono; error y acción también conservados |
 | Navegación con carga interrumpida | Al volver aparecían 2 celdas en vez de 1 | `GalleryControlsTest`: conserva filtro al reiniciar previews; carpeta nueva limpia filtros y conserva orden. `MosaicLifecycleTest` conserva manejo de resultados obsoletos |
 | Fecha EXIF imposible | 31/02 se normalizaba y quedaba como captura conocida | `ResolverStyle.STRICT`; fecha desconocida, cámara y demás tags preservados |
+| Corrección de review: tiempo de exposición fiel | La descripción mostraba 0.6 s como 1/2 s | `PhotoTileTest`: 0.8, 0.6 y 0.3 segundos permanecen decimales; 0.008 y 0.125 conservan 1/125 y 1/8; 1.25 y 0.0001234 conservan precisión. Sólo se usa 1/N si reconstruye exactamente el valor leído |
 
 Los archivos TIFF de test se construyen con `ByteBuffer` dentro de la suite Java y se escriben a archivos temporales; no hay mocks del parser ni scripts auxiliares. El fixture KDC distribuido se prueba intacto: extrae `Kodak Digital Science DC50 Zoom Camera`; los otros campos utilizados permanecen desconocidos. Sus dimensiones de miniatura no se presentan como dimensiones originales.
 
@@ -33,6 +34,8 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify -DlibraryGr
 `verify` completo y las 5 pruebas Ruby con 7 aserciones pasaron. La ejecución con capturas activó también el test visual opcional. Se inspeccionaron ambas imágenes: ancho 1080 con cuatro facetas y cuatro celdas por fila; ancho 350 con facetas apiladas, una celda por fila y controles de orden/pie sin desbordar. La selección de facetas sólo consulta objetos de dominio ya cargados: no vuelve a leer archivos ni a revelar RAW, y la prueba con decoder bloqueado confirma que sigue disponible durante el trabajo de fondo.
 
 La captura combina una fotografía KDC real con metadatos Nikon sintéticos del test para mostrar campos conocidos y desconocidos; estos datos no se agregan a la aplicación ni al fixture real. Los logs locales de ciclos quedaron en `/tmp/library-*-red.log` y `/tmp/library-*-green.log`; verificaciones completas en `/tmp/photo-grid-verify.log` y `/tmp/photo-grid-final-verify.log`.
+
+La corrección del tiempo de exposición se verificó primero con `PhotoTileTest` y `LibraryGridTest`, y luego con `verify` completo. Evidencia del ciclo en `/tmp/library-exposure-red.log`, `/tmp/library-exposure-green.log` y `/tmp/photo-grid-review-fix-verify.log`.
 
 ## Límites
 
