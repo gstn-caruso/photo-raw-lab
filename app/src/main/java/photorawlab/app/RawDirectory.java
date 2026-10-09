@@ -28,7 +28,12 @@ public final class RawDirectory {
         List<Entry> photos = new ArrayList<>();
         try (var paths = Files.list(directory)) {
             for (Path path : paths.filter(this::isRaw).sorted().toList()) {
-                BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+                BasicFileAttributes attributes;
+                try {
+                    attributes = Files.readAttributes(path, BasicFileAttributes.class);
+                } catch (IOException unavailable) {
+                    continue;
+                }
                 if (attributes.isRegularFile()) {
                     photos.add(new Entry(path, new GalleryPhoto(path.getFileName().toString(),
                             attributes.lastModifiedTime().toInstant(), attributes.size())));

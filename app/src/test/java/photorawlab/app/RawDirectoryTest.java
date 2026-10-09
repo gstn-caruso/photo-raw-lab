@@ -33,4 +33,17 @@ class RawDirectoryTest {
         assertEquals(photo, entries.getFirst().path());
         assertEquals(new photorawlab.domain.GalleryPhoto("photo.raw", modified, 17), entries.getFirst().photo());
     }
+
+    @Test void snapshotSkipsBrokenLinksAndDirectoriesButIncludesValidFileLinks() throws Exception {
+        Path good = Files.write(directory.resolve("good.raw"), new byte[7]);
+        Path linked = Files.createSymbolicLink(directory.resolve("linked.raw"), good);
+        Files.createSymbolicLink(directory.resolve("broken.raw"), directory.resolve("missing.raw"));
+        Files.createDirectory(directory.resolve("subdir.raw"));
+        var listing = new RawDirectory();
+        assertEquals(java.util.List.of(good, linked), listing.files(directory));
+        var snapshot = listing.snapshot(directory);
+        assertEquals(java.util.List.of(good, linked), snapshot.stream().map(RawDirectory.Entry::path).toList());
+        assertEquals(7, snapshot.getLast().photo().bytes());
+        assertThrows(java.io.IOException.class, () -> listing.snapshot(directory.resolve("absent")));
+    }
 }

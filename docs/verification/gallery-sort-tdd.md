@@ -27,3 +27,9 @@ Límites: la metadata es un snapshot al abrir la carpeta; cambios externos poste
 Verificación final: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify`: 4 tests dominio, 58 app (1 omitido: captura opcional) y 1 integración del launcher. Captura opcional en `/tmp/photo-raw-lab-sort-after.png`, 4 tests de grilla verdes.
 
 Criterio — intention-revealing-selector (#4) · `references/004-intention-revealing-selector.md`. RDD mantiene el dominio independiente de UI y filesystem.
+
+## Review: candidatos inaccesibles
+
+Expectativa: un enlace RAW roto no impide listar los archivos válidos; se siguen admitiendo enlaces a archivos regulares y omitiendo directorios con extensión RAW. Un fallo al listar la carpeta completa sigue propagándose.
+
+Red: `snapshotSkipsBrokenLinksAndDirectoriesButIncludesValidFileLinks` falla con `NoSuchFileException` para `broken.raw`, aunque `files()` devuelve los dos candidatos válidos. Green: se omite sólo el candidato cuyos atributos arrojan `IOException`; los cuatro tests de `RawDirectoryTest` pasan, incluyendo metadata del enlace válido y error de carpeta inexistente. La frontera filesystem conserva esta decisión fuera del dominio.
