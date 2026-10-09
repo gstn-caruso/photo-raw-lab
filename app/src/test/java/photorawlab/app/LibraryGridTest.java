@@ -67,14 +67,22 @@ class LibraryGridTest {
         var image = new LibRawDecoder().decode(fixture);
         BufferedImage landscape = new PreviewRenderer(path -> image).render(fixture);
         BufferedImage portrait = new PreviewRenderer(path -> PreviewOrientation.apply(image, 6)).render(fixture);
-        BufferedImage[] screenshot = new BufferedImage[1];
+        BufferedImage[] screenshot = new BufferedImage[2];
         JFrame[] frame = new JFrame[1];
         try {
             SwingUtilities.invokeAndWait(() -> {
                 DirectoryMosaicPanel mosaic = new DirectoryMosaicPanel(path -> {});
                 var paths = IntStream.range(0, 11)
                         .mapToObj(i -> Path.of("DSC_%04d.kdc".formatted(i + 1))).toList();
-                mosaic.showFiles(paths);
+                var known = new RawMetadataReader().read(fixture);
+                var missing = photorawlab.domain.PhotoMetadata.unknown();
+                var optical = new photorawlab.domain.PhotoMetadata(java.util.Optional.of(java.time.LocalDateTime.of(2024, 5, 6, 12, 30)),
+                        java.util.Optional.of("Nikon D850"), java.util.Optional.of("AF-S NIKKOR 50mm f/1.8G"),
+                        java.util.Optional.of(400), java.util.Optional.of(2.8), java.util.Optional.of(0.008),
+                        java.util.Optional.of(50.0), java.util.Optional.of(8256), java.util.Optional.of(5504));
+                mosaic.showEntries(IntStream.range(0, paths.size()).mapToObj(i -> new RawDirectory.Entry(paths.get(i),
+                        new photorawlab.domain.GalleryPhoto(paths.get(i).getFileName().toString(), java.time.Instant.EPOCH, 0,
+                                i % 3 == 0 ? known : i % 3 == 1 ? optical : missing))).toList());
                 for (int i = 0; i < paths.size(); i++) {
                     if (i == 8) mosaic.showError(paths.get(i), "Archivo corrupto de ejemplo");
                     else mosaic.showPreview(paths.get(i), i % 3 == 1 ? portrait : landscape);
@@ -96,11 +104,22 @@ class LibraryGridTest {
                 var graphics = screenshot[0].createGraphics();
                 try { mosaic.paint(graphics); }
                 finally { graphics.dispose(); }
+                if (System.getProperty("libraryGridNarrowScreenshot") != null) frame[0].setSize(350, 770);
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                if (System.getProperty("libraryGridNarrowScreenshot") == null) return;
+                var mosaic = (DirectoryMosaicPanel) frame[0].getContentPane();
+                assertEquals(280, tiles(mosaic).getComponent(1).getY());
+                screenshot[1] = new BufferedImage(mosaic.getWidth(), mosaic.getHeight(), BufferedImage.TYPE_INT_RGB);
+                var graphics = screenshot[1].createGraphics();
+                try { mosaic.paint(graphics); }
+                finally { graphics.dispose(); }
             });
         } finally {
             SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
         }
         assertTrue(ImageIO.write(screenshot[0], "png", Path.of(System.getProperty("libraryGridScreenshot")).toFile()));
+        if (screenshot[1] != null) assertTrue(ImageIO.write(screenshot[1], "png", Path.of(System.getProperty("libraryGridNarrowScreenshot")).toFile()));
     }
 
     @Test

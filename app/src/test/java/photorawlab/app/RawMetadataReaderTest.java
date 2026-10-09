@@ -12,6 +12,17 @@ import org.junit.jupiter.api.io.TempDir;
 class RawMetadataReaderTest {
     @TempDir Path directory;
 
+    @Test void realKodakRawSuppliesCameraButDoesNotInventMissingCaptureOrOriginalDimensions() throws Exception {
+        Path raw = Path.of(getClass().getResource("/raw/kodak-dc50.kdc").toURI());
+        var metadata = new RawMetadataReader().read(raw);
+        assertEquals("Kodak Digital Science DC50 Zoom Camera", metadata.camera().orElseThrow());
+        assertTrue(metadata.captured().isEmpty());
+        assertTrue(metadata.lens().isEmpty());
+        assertTrue(metadata.iso().isEmpty());
+        assertTrue(metadata.width().isEmpty());
+        assertTrue(metadata.height().isEmpty());
+    }
+
     @Test void unavailableCorruptAndAbsentMetadataKeepExplicitUnknownsAndFiles() throws Exception {
         assertEquals(photorawlab.domain.PhotoMetadata.unknown(), new RawMetadataReader().read(directory.resolve("missing.raw")));
         Path corrupt = Files.write(directory.resolve("corrupt.cr3"), new byte[] {1, 2, 3});
