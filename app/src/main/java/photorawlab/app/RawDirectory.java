@@ -36,7 +36,7 @@ public final class RawDirectory {
                 }
                 if (attributes.isRegularFile()) {
                     photos.add(new Entry(path, new GalleryPhoto(path.getFileName().toString(),
-                            attributes.lastModifiedTime().toInstant(), attributes.size())));
+                            attributes.lastModifiedTime().toInstant(), attributes.size(), new RawMetadataReader().read(path))));
                 }
             }
         }
