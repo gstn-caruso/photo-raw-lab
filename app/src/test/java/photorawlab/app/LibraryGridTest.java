@@ -68,9 +68,9 @@ class LibraryGridTest {
         BufferedImage landscape = new PreviewRenderer(path -> image).render(fixture);
         BufferedImage portrait = new PreviewRenderer(path -> PreviewOrientation.apply(image, 6)).render(fixture);
         BufferedImage[] screenshot = new BufferedImage[1];
-        SwingUtilities.invokeAndWait(() -> {
-            JFrame frame = new JFrame();
-            try {
+        JFrame[] frame = new JFrame[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> {
                 DirectoryMosaicPanel mosaic = new DirectoryMosaicPanel(path -> {});
                 var paths = IntStream.range(0, 11)
                         .mapToObj(i -> Path.of("DSC_%04d.kdc".formatted(i + 1))).toList();
@@ -79,16 +79,27 @@ class LibraryGridTest {
                     if (i == 8) mosaic.showError(paths.get(i), "Archivo corrupto de ejemplo");
                     else mosaic.showPreview(paths.get(i), i % 3 == 1 ? portrait : landscape);
                 }
-                frame.setContentPane(mosaic);
-                frame.setSize(1080, 730);
-                frame.setVisible(true);
-                frame.validate();
+                frame[0] = new JFrame();
+                frame[0].setContentPane(mosaic);
+                frame[0].setSize(1080, 730);
+                frame[0].setVisible(true);
+                frame[0].validate();
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame[0].getContentPane();
+                JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
+                assertEquals(696, tiles(mosaic).getHeight());
+                assertEquals(0, tiles(mosaic).getComponent(3).getY());
+                assertEquals(464, tiles(mosaic).getComponent(10).getY());
+                assertFalse(scroll.getVerticalScrollBar().isVisible());
                 screenshot[0] = new BufferedImage(mosaic.getWidth(), mosaic.getHeight(), BufferedImage.TYPE_INT_RGB);
                 var graphics = screenshot[0].createGraphics();
                 try { mosaic.paint(graphics); }
                 finally { graphics.dispose(); }
-            } finally { frame.dispose(); }
-        });
+            });
+        } finally {
+            SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
+        }
         assertTrue(ImageIO.write(screenshot[0], "png", Path.of(System.getProperty("libraryGridScreenshot")).toFile()));
     }
 

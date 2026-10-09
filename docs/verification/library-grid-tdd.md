@@ -32,10 +32,16 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B -pl app -am test -
 
 Límites: tamaños expresados en coordenadas Swing; nombres largos se recortan con el comportamiento estándar de JButton. Por debajo del ancho de una celda, el viewport recorta la celda y conserva desplazamiento exclusivamente vertical. No se agregan ratings, barras laterales ni otras herramientas de Lightroom.
 
-Verificación final: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify` verde: 2 tests dominio, 53 app (1 omitido: captura opcional), 1 integración. La ejecución focal con `libraryGridScreenshot` pasó los 3 tests y produjo el PNG; inspección manual confirmó cuatro columnas, nombre superior, previews centradas, celda de error y última fila sin estirar. Conservados los tests existentes de carga asíncrona, errores, apertura y regreso.
+Verificación final tras review: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify` verde: 2 tests dominio, 54 app (1 omitido: captura opcional), 1 integración. La ejecución focal con `libraryGridScreenshot` pasó los 4 tests y produjo el PNG corregido; inspección manual confirmó cuatro columnas, nombre superior, previews centradas, celda de error, última fila sin estirar y ausencia de scrollbar para las once fotos en 1080 × 730. Conservados los tests existentes de carga asíncrona, errores, apertura y regreso.
 
 ## Review: cálculo estable de columnas y scroll
 
 Expectativa: abrir directamente en 806 × 500 con seis fotos debe dar la misma geometría que redimensionar de 850 a 806: tres columnas, dos filas, sin scrollbar. En 570 × 500, dos columnas y tres filas; desplazar al máximo debe mostrar completa la última fila.
 
 Red: `openingAndResizingToTheSameWidthProduceTheSameGridAndReachTheLastRow` falla: tercera celda en y=232 en vez de y=0 al abrir directamente. El tamaño preferido usaba el ancho anterior de la grilla, por lo que la scrollbar afectaba su propia necesidad. Green: cálculo desde el espacio disponible del JScrollPane, restando bordes y reservando scrollbar sólo si la altura de filas la necesita. Test focal verifica apertura y resize iguales, altura 464 sin scroll y 696 con scroll; extremo inferior del viewport y última celda coinciden en y=696.
+
+## Review: captura después de eventos pendientes
+
+Expectativa manual antes del cambio: once celdas en cuatro columnas necesitan 696 píxeles de alto, por lo que en 1080 × 730 no corresponde scrollbar. La captura anterior mostraba una scrollbar con altura preferida transitoria; inspección manual del PNG anterior refuta la evidencia original. Este hallazgo corrige la herramienta de captura, junto con la corrección funcional anterior; no se declara un nuevo rojo automatizado para el cambio de herramienta.
+
+La creación y captura ahora ocurren en turnos EDT separados, dejando procesar los eventos de validación pendientes. Antes de pintar se comprueba altura de grilla=696, cuarta celda en y=0, última celda en y=464 y scrollbar ausente. La prueba opcional pasó con estas expectativas y regeneró `/tmp/photo-raw-lab-grid-after.png`; inspección manual confirmó la geometría estable y ausencia de scrollbar.
