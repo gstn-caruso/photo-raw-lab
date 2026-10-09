@@ -12,6 +12,18 @@ import org.junit.jupiter.api.io.TempDir;
 class RawMetadataReaderTest {
     @TempDir Path directory;
 
+    @Test void unavailableCorruptAndAbsentMetadataKeepExplicitUnknownsAndFiles() throws Exception {
+        assertEquals(photorawlab.domain.PhotoMetadata.unknown(), new RawMetadataReader().read(directory.resolve("missing.raw")));
+        Path corrupt = Files.write(directory.resolve("corrupt.cr3"), new byte[] {1, 2, 3});
+        Path absent = Files.write(directory.resolve("absent.dng"), new byte[] {73, 73, 42, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0});
+        for (var entry : new RawDirectory().snapshot(directory)) {
+            assertEquals(photorawlab.domain.PhotoMetadata.unknown(), entry.photo().metadata());
+            assertTrue(entry.path().equals(corrupt) || entry.path().equals(absent));
+            assertTrue(entry.photo().metadata().captured().isEmpty(), "Modified time must not masquerade as capture time");
+        }
+        assertEquals(2, new RawDirectory().snapshot(directory).size());
+    }
+
     @Test void readsCaptureAndOpticalMetadataFromAnActualExifTiffFile() throws Exception {
         Path raw = Files.write(directory.resolve("camera.dng"), exifTiff());
         var metadata = new RawMetadataReader().read(raw);
