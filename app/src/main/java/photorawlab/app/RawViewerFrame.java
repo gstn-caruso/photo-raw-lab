@@ -111,13 +111,20 @@ public final class RawViewerFrame extends JFrame {
     public void openDirectory(Path path) {
         requireEdt();
         if (disposed) return;
+        mosaic.showFiles(List.of());
+        loadDirectory(path);
+    }
+
+    private void loadDirectory(Path path) {
+        requireEdt();
+        if (disposed) return;
         long request = ++generation;
         directory = path;
         mosaicComplete = false;
         imagePanel.setImage(null);
         cards.show(content, "mosaic");
         backButton.setEnabled(false);
-        mosaic.showFiles(List.of());
+        mosaic.refreshEntries(List.of());
         beginLoading("Leyendo " + path + "…");
         new SwingWorker<Integer, PreviewUpdate>() {
             @Override protected Integer doInBackground() throws Exception {
@@ -146,7 +153,7 @@ public final class RawViewerFrame extends JFrame {
                 for (PreviewUpdate update : updates) {
                     if (update.files() != null) {
                         lastDirectory.save(path);
-                        mosaic.showEntries(update.files());
+                        mosaic.refreshEntries(update.files());
                     }
                     else if (update.image() != null) mosaic.showPreview(update.path(), update.image());
                     else mosaic.showError(update.path(), update.error());
@@ -172,7 +179,7 @@ public final class RawViewerFrame extends JFrame {
 
     private void showMosaic() {
         if (!mosaicComplete) {
-            openDirectory(directory);
+            loadDirectory(directory);
             return;
         }
         ++generation;

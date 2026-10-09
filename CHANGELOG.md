@@ -4,6 +4,9 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Filtros de biblioteca por fecha de captura, cámara, lente y tipo de archivo, con conteos combinados, opción Sin datos y pie de fotos visibles sobre el total; columnas adaptables y filtros conservados durante la navegación.
+- Celdas con índice, cámara, lente y ajustes de exposición; lectura EXIF en segundo plano, captura y dimensiones originales en el tooltip y desconocidos explícitos ante metadatos ausentes.
+
 - Controles de orden del mosaico por nombre, fecha de modificación y tamaño, ascendente o descendente; conservan previews y errores durante la carga y la selección durante la sesión.
 
 - Grilla de biblioteca inspirada en Lightroom: columnas adaptables al ancho de la ventana, celdas uniformes sin estirar filas incompletas, nombre superior, fotografías centradas y desplazamiento vertical.

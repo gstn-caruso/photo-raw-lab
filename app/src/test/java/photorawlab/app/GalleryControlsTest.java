@@ -12,6 +12,55 @@ import org.junit.jupiter.api.Test;
 class GalleryControlsTest {
     @org.junit.jupiter.api.io.TempDir Path directory;
 
+    @Test void returningToAnInterruptedMosaicKeepsMetadataSelections() throws Exception {
+        Path alpha = java.nio.file.Files.createFile(directory.resolve("a.raw"));
+        java.nio.file.Files.createFile(directory.resolve("b.dng"));
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var completed = new java.util.concurrent.LinkedBlockingQueue<Boolean>();
+        var shown = new java.util.concurrent.CompletableFuture<DirectoryMosaicPanel>();
+        RawViewerFrame[] frame = new RawViewerFrame[1];
+        Timer observer = new Timer(10, event -> {
+            var mosaic = findMosaic(frame[0]);
+            if (grid(mosaic).getComponentCount() == 2) shown.complete(mosaic);
+        });
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                frame[0] = new RawViewerFrame(path -> {
+                    entered.countDown();
+                    try { assertTrue(release.await(5, java.util.concurrent.TimeUnit.SECONDS)); }
+                    catch (InterruptedException error) { throw new java.io.IOException(error); }
+                    return new photorawlab.domain.RgbImage(1, 1, new int[] {0xff0000});
+                }, new LastDirectory() {
+                    public java.util.Optional<Path> load() { return java.util.Optional.empty(); }
+                    public void save(Path path) {}
+                });
+                frame[0].addPropertyChangeListener("loading", event -> completed.add(true));
+                frame[0].openDirectory(directory);
+                observer.start();
+            });
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            var mosaic = shown.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            SwingUtilities.invokeAndWait(() -> {
+                observer.stop();
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo"), "DNG");
+                frame[0].openRaw(alpha);
+            });
+            release.countDown();
+            assertNotNull(completed.poll(5, java.util.concurrent.TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> DirectoryMosaicTest.button(frame[0], "Volver al mosaico").doClick());
+            assertNotNull(completed.poll(5, java.util.concurrent.TimeUnit.SECONDS));
+            SwingUtilities.invokeAndWait(() -> {
+                assertEquals(1, grid(mosaic).getComponentCount());
+                assertEquals("b.dng", ((JButton) grid(mosaic).getComponent(0)).getText());
+                assertTrue(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo").getSelectedValue().toString().startsWith("DNG"));
+            });
+        } finally {
+            release.countDown();
+            SwingUtilities.invokeAndWait(() -> { observer.stop(); if (frame[0] != null) frame[0].dispose(); });
+        }
+    }
+
     @Test void bothSortingControlsStayFullyVisibleInANarrowWindow() throws Exception {
         JFrame[] frame = new JFrame[1];
         try {
@@ -72,6 +121,7 @@ class GalleryControlsTest {
                 ((JComboBox<?>) controls.getComponent(1)).setSelectedIndex(1);
                 ((JComboBox<?>) controls.getComponent(3)).setSelectedIndex(1);
                 assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura"), "Sin datos");
                 frame[0].openRaw(alpha);
             });
             assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
@@ -80,6 +130,7 @@ class GalleryControlsTest {
                 var mosaic = findMosaic(frame[0]);
                 assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
                 assertPreferences(mosaic);
+                assertTrue(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura").getSelectedValue().toString().startsWith("Sin datos"));
                 assertEquals(3, decodes.get(), "Returning to completed mosaic must reuse previews");
                 completions.clear();
                 frame[0].openDirectory(next);
@@ -88,6 +139,7 @@ class GalleryControlsTest {
             SwingUtilities.invokeAndWait(() -> {
                 var mosaic = findMosaic(frame[0]);
                 assertPreferences(mosaic);
+                assertTrue(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura").getSelectedValue().toString().startsWith("Todas"));
                 assertEquals("c.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
             });
         } finally {
@@ -103,7 +155,7 @@ class GalleryControlsTest {
 
     @Test void sortingDuringDecodeUsesMetadataAndKeepsPendingPreviewAttachedToItsPath() throws Exception {
         Path alpha = java.nio.file.Files.write(directory.resolve("a.raw"), new byte[20]);
-        Path beta = java.nio.file.Files.write(directory.resolve("b.raw"), new byte[10]);
+        Path beta = java.nio.file.Files.write(directory.resolve("b.dng"), new byte[10]);
         var entered = new java.util.concurrent.CountDownLatch(1);
         var release = new java.util.concurrent.CountDownLatch(1);
         var done = new java.util.concurrent.CountDownLatch(1);
@@ -141,11 +193,14 @@ class GalleryControlsTest {
                 original[1] = (JButton) grid(mosaic).getComponent(1);
                 ((JComboBox<?>) ((JPanel) mosaic.getComponent(1)).getComponent(1)).setSelectedIndex(2);
                 assertSame(original[1], grid(mosaic).getComponent(0), "Smaller file must move first while decoding is blocked");
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo"), "DNG");
+                assertEquals(1, grid(mosaic).getComponentCount());
             });
             release.countDown();
             assertTrue(done.await(5, java.util.concurrent.TimeUnit.SECONDS));
             SwingUtilities.invokeAndWait(() -> {
                 assertSame(original[1], grid(mosaic).getComponent(0));
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo"), "Todas");
                 assertNotNull(original[0].getIcon());
                 assertNotNull(original[1].getIcon());
                 assertTrue(original[0].isEnabled());

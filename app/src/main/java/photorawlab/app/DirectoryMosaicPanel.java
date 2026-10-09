@@ -23,12 +23,16 @@ import javax.swing.Scrollable;
 import javax.swing.SwingUtilities;
 import photorawlab.domain.GalleryPhoto;
 import photorawlab.domain.GallerySort;
+import photorawlab.domain.LibraryFilter;
 
 public final class DirectoryMosaicPanel extends JPanel {
     private final JPanel tiles = new LibraryGrid();
-    private final Map<Path, JButton> buttons = new LinkedHashMap<>();
+    private final Map<Path, PhotoTile> buttons = new LinkedHashMap<>();
     private final Consumer<Path> openPhoto;
     private List<RawDirectory.Entry> entries = List.of();
+    private final LibraryFilter filter = new LibraryFilter();
+    private final MetadataFilterPanel metadataFilters = new MetadataFilterPanel(filter, this::reorderTiles);
+    private final JLabel count = new JLabel("0 de 0 fotos");
     private final JComboBox<SortOption> criterion = new JComboBox<>(new SortOption[] {
         new SortOption("Nombre de archivo", GallerySort.Criterion.NAME),
         new SortOption("Fecha de modificación", GallerySort.Criterion.MODIFIED),
@@ -56,6 +60,10 @@ public final class DirectoryMosaicPanel extends JPanel {
         criterion.addActionListener(event -> reorderTiles());
         direction.addActionListener(event -> reorderTiles());
         add(controls, BorderLayout.SOUTH);
+        count.setForeground(AppPalette.TEXT);
+        controls.add(count);
+        add(metadataFilters, BorderLayout.NORTH);
+        metadataFilters.refresh(List.of());
     }
 
     public void showFiles(List<Path> paths) {
@@ -64,18 +72,17 @@ public final class DirectoryMosaicPanel extends JPanel {
     }
 
     public void showEntries(List<RawDirectory.Entry> entries) {
+        filter.clear();
+        refreshEntries(entries);
+    }
+
+    void refreshEntries(List<RawDirectory.Entry> entries) {
         this.entries = List.copyOf(entries);
         tiles.removeAll();
         buttons.clear();
         for (var entry : entries) {
             Path path = entry.path();
-            JButton tile = new JButton(path.getFileName().toString());
-            AppPalette.styleButton(tile, AppPalette.TILE);
-            tile.setVerticalTextPosition(JButton.TOP);
-            tile.setHorizontalTextPosition(JButton.CENTER);
-            tile.setVerticalAlignment(JButton.TOP);
-            tile.setIconTextGap(8);
-            tile.setEnabled(false);
+            PhotoTile tile = new PhotoTile(entry.photo());
             tile.addActionListener(event -> openPhoto.accept(path));
             buttons.put(path, tile);
         }
@@ -96,8 +103,15 @@ public final class DirectoryMosaicPanel extends JPanel {
         GallerySort sort = new GallerySort(((SortOption) criterion.getSelectedItem()).criterion(),
                 direction.getSelectedIndex() == 0 ? GallerySort.Direction.ASCENDING : GallerySort.Direction.DESCENDING);
         tiles.removeAll();
-        entries.stream().sorted(java.util.Comparator.comparing(RawDirectory.Entry::photo, sort.comparator()))
-                .forEach(entry -> tiles.add(buttons.get(entry.path())));
+        entries.stream().filter(entry -> filter.matches(entry.photo()))
+                .sorted(java.util.Comparator.comparing(RawDirectory.Entry::photo, sort.comparator()))
+                .forEach(entry -> {
+                    PhotoTile tile = buttons.get(entry.path());
+                    tile.showIndex(tiles.getComponentCount() + 1);
+                    tiles.add(tile);
+                });
+        count.setText(tiles.getComponentCount() + " de " + entries.size() + " fotos");
+        metadataFilters.refresh(entries.stream().map(RawDirectory.Entry::photo).toList());
         revalidate();
         repaint();
     }
@@ -163,7 +177,7 @@ public final class DirectoryMosaicPanel extends JPanel {
 
     private static final class LibraryGrid extends JPanel implements Scrollable {
         private static final int CELL_WIDTH = 264;
-        private static final int CELL_HEIGHT = 232;
+        private static final int CELL_HEIGHT = 280;
 
         LibraryGrid() {
             super(null);
