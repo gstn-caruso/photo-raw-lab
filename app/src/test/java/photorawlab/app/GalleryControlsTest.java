@@ -19,6 +19,7 @@ class GalleryControlsTest {
         Path next = java.nio.file.Files.createDirectory(directory.resolve("next"));
         java.nio.file.Files.createFile(next.resolve("c.raw"));
         java.nio.file.Files.createFile(next.resolve("d.raw"));
+        java.nio.file.Files.setLastModifiedTime(next.resolve("d.raw"), java.nio.file.attribute.FileTime.from(java.time.Instant.EPOCH));
         var completions = new java.util.concurrent.LinkedBlockingQueue<Boolean>();
         var decodes = new java.util.concurrent.atomic.AtomicInteger();
         RawViewerFrame[] frame = new RawViewerFrame[1];
@@ -50,10 +51,15 @@ class GalleryControlsTest {
                 assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
                 assertPreferences(mosaic);
                 assertEquals(3, decodes.get(), "Returning to completed mosaic must reuse previews");
+                completions.clear();
                 frame[0].openDirectory(next);
             });
             assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
-            SwingUtilities.invokeAndWait(() -> assertPreferences(findMosaic(frame[0])));
+            SwingUtilities.invokeAndWait(() -> {
+                var mosaic = findMosaic(frame[0]);
+                assertPreferences(mosaic);
+                assertEquals("c.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
+            });
         } finally {
             SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
         }
@@ -88,6 +94,9 @@ class GalleryControlsTest {
                         catch (InterruptedException error) { throw new java.io.IOException(error); }
                     }
                     return new photorawlab.domain.RgbImage(1, 1, new int[] {path.equals(alpha) ? 0xff0000 : 0x00ff00});
+                }, new LastDirectory() {
+                    public java.util.Optional<Path> load() { return java.util.Optional.empty(); }
+                    public void save(Path path) {}
                 });
                 frame[0].addPropertyChangeListener("loading", event -> done.countDown());
                 frame[0].openDirectory(directory);
