@@ -11,17 +11,34 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.time.Instant;
+import java.awt.FlowLayout;
 import javax.swing.Icon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
 import javax.swing.SwingUtilities;
+import photorawlab.domain.GalleryPhoto;
+import photorawlab.domain.GallerySort;
 
 public final class DirectoryMosaicPanel extends JPanel {
     private final JPanel tiles = new LibraryGrid();
     private final Map<Path, JButton> buttons = new LinkedHashMap<>();
     private final Consumer<Path> openPhoto;
+    private List<RawDirectory.Entry> entries = List.of();
+    private final JComboBox<SortOption> criterion = new JComboBox<>(new SortOption[] {
+        new SortOption("Nombre de archivo", GallerySort.Criterion.NAME),
+        new SortOption("Fecha de modificación", GallerySort.Criterion.MODIFIED),
+        new SortOption("Tamaño", GallerySort.Criterion.SIZE)
+    });
+    private final JComboBox<String> direction = new JComboBox<>(new String[] {"Ascendente", "Descendente"});
+
+    private record SortOption(String label, GallerySort.Criterion criterion) {
+        @Override public String toString() { return label; }
+    }
 
     public DirectoryMosaicPanel(Consumer<Path> openPhoto) {
         super(new BorderLayout());
@@ -32,12 +49,26 @@ public final class DirectoryMosaicPanel extends JPanel {
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         AppPalette.styleScrollPane(scroll);
         add(scroll);
+        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        controls.setBackground(AppPalette.CHROME);
+        addSortControl(controls, "Ordenar por:", criterion);
+        addSortControl(controls, "Orden:", direction);
+        criterion.addActionListener(event -> reorderTiles());
+        direction.addActionListener(event -> reorderTiles());
+        add(controls, BorderLayout.SOUTH);
     }
 
     public void showFiles(List<Path> paths) {
+        showEntries(paths.stream().map(path -> new RawDirectory.Entry(path,
+                new GalleryPhoto(path.getFileName().toString(), Instant.EPOCH, 0))).toList());
+    }
+
+    public void showEntries(List<RawDirectory.Entry> entries) {
+        this.entries = List.copyOf(entries);
         tiles.removeAll();
         buttons.clear();
-        for (Path path : paths) {
+        for (var entry : entries) {
+            Path path = entry.path();
             JButton tile = new JButton(path.getFileName().toString());
             AppPalette.styleButton(tile, AppPalette.TILE);
             tile.setVerticalTextPosition(JButton.TOP);
@@ -47,8 +78,26 @@ public final class DirectoryMosaicPanel extends JPanel {
             tile.setEnabled(false);
             tile.addActionListener(event -> openPhoto.accept(path));
             buttons.put(path, tile);
-            tiles.add(tile);
         }
+        reorderTiles();
+    }
+
+    private void addSortControl(JPanel controls, String text, JComboBox<?> combo) {
+        JLabel label = new JLabel(text);
+        label.setForeground(AppPalette.TEXT);
+        label.setLabelFor(combo);
+        combo.getAccessibleContext().setAccessibleName(text);
+        AppPalette.styleComboBox(combo);
+        controls.add(label);
+        controls.add(combo);
+    }
+
+    private void reorderTiles() {
+        GallerySort sort = new GallerySort(((SortOption) criterion.getSelectedItem()).criterion(),
+                direction.getSelectedIndex() == 0 ? GallerySort.Direction.ASCENDING : GallerySort.Direction.DESCENDING);
+        tiles.removeAll();
+        entries.stream().sorted(java.util.Comparator.comparing(RawDirectory.Entry::photo, sort.comparator()))
+                .forEach(entry -> tiles.add(buttons.get(entry.path())));
         revalidate();
         repaint();
     }

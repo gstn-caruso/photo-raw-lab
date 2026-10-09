@@ -8,6 +8,9 @@ import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.JComboBox;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.plaf.basic.BasicArrowButton;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicGraphicsUtils;
@@ -22,6 +25,26 @@ final class AppPalette {
     static final Color BORDER = new Color(0x404040);
 
     private AppPalette() {}
+
+    static void styleComboBox(JComboBox<?> combo) {
+        combo.setUI(new BasicComboBoxUI() {
+            @Override protected JButton createArrowButton() {
+                return new BasicArrowButton(BasicArrowButton.SOUTH, PANEL, BORDER, TEXT, TILE);
+            }
+        });
+        combo.setBackground(PANEL);
+        combo.setForeground(TEXT);
+        combo.setBorder(BorderFactory.createLineBorder(BORDER));
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override public java.awt.Component getListCellRendererComponent(javax.swing.JList<?> list,
+                    Object value, int index, boolean selected, boolean focus) {
+                var rendered = super.getListCellRendererComponent(list, value, index, selected, focus);
+                rendered.setBackground(selected ? TILE : PANEL);
+                rendered.setForeground(TEXT);
+                return rendered;
+            }
+        });
+    }
 
     static void styleButton(JButton button, Color background) {
         button.setUI(new BasicButtonUI() {

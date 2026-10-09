@@ -6,8 +6,10 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import photorawlab.domain.GalleryPhoto;
 
 public final class RawDirectory {
+    public record Entry(Path path, GalleryPhoto photo) {}
     private static final List<String> EXTENSIONS = List.of("raw", "cr2", "cr3", "crw", "nef", "nrw",
             "arw", "dng", "kdc", "dcr", "orf", "rw2", "raf", "pef", "srw", "3fr", "fff", "iiq");
 
