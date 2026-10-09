@@ -72,12 +72,12 @@ public final class DirectoryMosaicPanel extends JPanel {
     }
 
     public void showEntries(List<RawDirectory.Entry> entries) {
-        showEntries(entries, false);
+        filter.clear();
+        refreshEntries(entries);
     }
 
-    void showEntries(List<RawDirectory.Entry> entries, boolean preserveFilters) {
+    void refreshEntries(List<RawDirectory.Entry> entries) {
         this.entries = List.copyOf(entries);
-        if (!preserveFilters) filter.clear();
         tiles.removeAll();
         buttons.clear();
         for (var entry : entries) {
