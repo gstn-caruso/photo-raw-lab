@@ -178,6 +178,13 @@ class GalleryControlsTest {
             assertEquals(AppPalette.PANEL, direction.getBackground());
             assertEquals(AppPalette.TEXT, direction.getForeground());
             assertSame(direction, ((JLabel) controls.getComponent(2)).getLabelFor());
+            direction.setSize(160, 28);
+            direction.doLayout();
+            var painted = new BufferedImage(160, 28, BufferedImage.TYPE_INT_RGB);
+            var graphics = painted.createGraphics();
+            try { direction.paint(graphics); }
+            finally { graphics.dispose(); }
+            assertEquals(AppPalette.PANEL.getRGB(), painted.getRGB(5, 23), "Selected value must use the gray palette");
         });
     }
 }

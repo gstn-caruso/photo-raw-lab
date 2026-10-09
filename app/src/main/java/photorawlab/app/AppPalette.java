@@ -31,6 +31,21 @@ final class AppPalette {
             @Override protected JButton createArrowButton() {
                 return new BasicArrowButton(BasicArrowButton.SOUTH, PANEL, BORDER, TEXT, TILE);
             }
+
+            @Override public void paintCurrentValueBackground(Graphics graphics, Rectangle bounds, boolean focus) {
+                graphics.setColor(PANEL);
+                graphics.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
+
+            @Override public void paintCurrentValue(Graphics graphics, Rectangle bounds, boolean focus) {
+                var value = comboBox.getRenderer().getListCellRendererComponent(listBox,
+                        comboBox.getSelectedItem(), -1, false, false);
+                value.setFont(comboBox.getFont());
+                value.setBackground(PANEL);
+                value.setForeground(TEXT);
+                currentValuePane.paintComponent(graphics, value, comboBox,
+                        bounds.x, bounds.y, bounds.width, bounds.height);
+            }
         });
         combo.setBackground(PANEL);
         combo.setForeground(TEXT);
