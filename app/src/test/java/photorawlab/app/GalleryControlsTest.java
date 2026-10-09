@@ -12,6 +12,36 @@ import org.junit.jupiter.api.Test;
 class GalleryControlsTest {
     @org.junit.jupiter.api.io.TempDir Path directory;
 
+    @Test void bothSortingControlsStayFullyVisibleInANarrowWindow() throws Exception {
+        JFrame[] frame = new JFrame[1];
+        try {
+            SwingUtilities.invokeAndWait(() -> {
+                frame[0] = new JFrame();
+                frame[0].setContentPane(new DirectoryMosaicPanel(path -> {}));
+                frame[0].setSize(350, 700);
+                frame[0].setVisible(true);
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                var mosaic = (DirectoryMosaicPanel) frame[0].getContentPane();
+                var controls = (JPanel) mosaic.getComponent(1);
+                for (var control : controls.getComponents()) {
+                    assertTrue(controls.getVisibleRect().contains(control.getBounds()),
+                            () -> control.getBounds() + " must fit inside " + controls.getVisibleRect());
+                }
+                assertTrue(((JComboBox<?>) controls.getComponent(3)).isFocusable());
+                frame[0].setSize(1000, 700);
+            });
+            SwingUtilities.invokeAndWait(() -> {
+                var mosaic = (DirectoryMosaicPanel) frame[0].getContentPane();
+                var controls = (JPanel) mosaic.getComponent(1);
+                assertEquals(controls.getComponent(1).getY(), controls.getComponent(3).getY());
+                assertTrue(controls.getHeight() < 40, "Wide window keeps the compact footer");
+            });
+        } finally {
+            SwingUtilities.invokeAndWait(() -> { if (frame[0] != null) frame[0].dispose(); });
+        }
+    }
+
     @Test void sortingPreferencesSurvivePhotoNavigationAndChangingDirectories() throws Exception {
         Path alpha = java.nio.file.Files.createFile(directory.resolve("a.raw"));
         java.nio.file.Files.createFile(directory.resolve("b.raw"));

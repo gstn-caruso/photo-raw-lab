@@ -24,7 +24,7 @@ Captura opcional: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B
 
 Límites: la metadata es un snapshot al abrir la carpeta; cambios externos posteriores requieren volver a abrirla. No persiste preferencias entre ejecuciones ni usa fecha EXIF. No se cambió la política existente de recargar un mosaico incompleto al volver desde una foto.
 
-Verificación final: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify`: 4 tests dominio, 58 app (1 omitido: captura opcional) y 1 integración del launcher. Captura opcional en `/tmp/photo-raw-lab-sort-after.png`, 4 tests de grilla verdes.
+Verificación final tras review: `env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify`: 4 tests dominio, 60 app (1 omitido: captura opcional) y 1 integración del launcher. Captura opcional regenerada en `/tmp/photo-raw-lab-sort-after.png`, 4 tests de grilla verdes.
 
 Criterio — intention-revealing-selector (#4) · `references/004-intention-revealing-selector.md`. RDD mantiene el dominio independiente de UI y filesystem.
 
@@ -33,3 +33,9 @@ Criterio — intention-revealing-selector (#4) · `references/004-intention-reve
 Expectativa: un enlace RAW roto no impide listar los archivos válidos; se siguen admitiendo enlaces a archivos regulares y omitiendo directorios con extensión RAW. Un fallo al listar la carpeta completa sigue propagándose.
 
 Red: `snapshotSkipsBrokenLinksAndDirectoriesButIncludesValidFileLinks` falla con `NoSuchFileException` para `broken.raw`, aunque `files()` devuelve los dos candidatos válidos. Green: se omite sólo el candidato cuyos atributos arrojan `IOException`; los cuatro tests de `RawDirectoryTest` pasan, incluyendo metadata del enlace válido y error de carpeta inexistente. La frontera filesystem conserva esta decisión fuera del dominio.
+
+## Review: footer en ventana angosta
+
+Expectativa: ambos selectores y sus etiquetas entran completamente en una ventana de 350 × 700; al ampliar a 1000 × 700, la barra vuelve a una sola fila compacta. Se dejan estabilizar los eventos EDT entre creación y comprobaciones.
+
+Red: `bothSortingControlsStayFullyVisibleInANarrowWindow` detecta dirección en `(8,31,101,21)` fuera del footer de `(350,31)`. Green: `SortControls` calcula su altura preferida por las filas que requiere el ancho disponible del panel, manteniendo el `FlowLayout`, controles, paleta y foco de teclado. Doce tests focales verdes (controles, filesystem y grilla con captura). El cálculo usa el ancho del contenedor para evitar depender del ancho anterior después de un resize.

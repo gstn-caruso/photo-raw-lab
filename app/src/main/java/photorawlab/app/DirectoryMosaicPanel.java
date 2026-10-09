@@ -49,7 +49,7 @@ public final class DirectoryMosaicPanel extends JPanel {
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         AppPalette.styleScrollPane(scroll);
         add(scroll);
-        JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        JPanel controls = new SortControls();
         controls.setBackground(AppPalette.CHROME);
         addSortControl(controls, "Ordenar por:", criterion);
         addSortControl(controls, "Orden:", direction);
@@ -110,6 +110,35 @@ public final class DirectoryMosaicPanel extends JPanel {
 
     public void showError(Path path, String error) {
         buttons.get(path).setToolTipText("No se pudo abrir: " + error);
+    }
+
+    private static final class SortControls extends JPanel {
+        SortControls() {
+            super(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        }
+
+        @Override public Dimension getPreferredSize() {
+            Dimension singleRow = super.getPreferredSize();
+            if (getParent() == null || getParent().getWidth() == 0) return singleRow;
+            FlowLayout layout = (FlowLayout) getLayout();
+            var insets = getInsets();
+            var parentInsets = getParent().getInsets();
+            int availableWidth = getParent().getWidth() - parentInsets.left - parentInsets.right
+                    - insets.left - insets.right - 2 * layout.getHgap();
+            int height = insets.top + insets.bottom + 2 * layout.getVgap();
+            int rowWidth = 0, rowHeight = 0;
+            for (Component control : getComponents()) {
+                Dimension size = control.getPreferredSize();
+                if (rowWidth > 0 && rowWidth + layout.getHgap() + size.width > availableWidth) {
+                    height += rowHeight + layout.getVgap();
+                    rowWidth = 0;
+                    rowHeight = 0;
+                }
+                rowWidth += (rowWidth == 0 ? 0 : layout.getHgap()) + size.width;
+                rowHeight = Math.max(rowHeight, size.height);
+            }
+            return new Dimension(singleRow.width, height + rowHeight);
+        }
     }
 
     private record PreviewIcon(BufferedImage preview) implements Icon {
