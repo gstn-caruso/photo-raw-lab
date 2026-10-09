@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.prefs.Preferences;
 import java.util.concurrent.ExecutionException;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -17,6 +18,7 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.plaf.basic.BasicProgressBarUI;
 import photorawlab.domain.RawImageDecoder;
 
 public final class RawViewerFrame extends JFrame {
@@ -51,6 +53,17 @@ public final class RawViewerFrame extends JFrame {
         setLocationByPlatform(true);
         JPanel toolbar = new JPanel(new BorderLayout(12, 0));
         JPanel actions = new JPanel();
+        toolbar.setBackground(AppPalette.CHROME);
+        actions.setBackground(AppPalette.CHROME);
+        content.setBackground(AppPalette.PANEL);
+        status.setForeground(AppPalette.TEXT);
+        AppPalette.styleButton(openButton, AppPalette.PANEL);
+        AppPalette.styleButton(directoryButton, AppPalette.PANEL);
+        AppPalette.styleButton(backButton, AppPalette.PANEL);
+        progress.setUI(new BasicProgressBarUI());
+        progress.setBackground(AppPalette.CHROME);
+        progress.setForeground(AppPalette.HIGHLIGHT);
+        progress.setBorder(BorderFactory.createLineBorder(AppPalette.BORDER));
         actions.add(openButton);
         actions.add(directoryButton);
         actions.add(backButton);

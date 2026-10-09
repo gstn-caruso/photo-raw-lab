@@ -1,6 +1,5 @@
 package photorawlab.app;
 
-import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import javax.swing.JPanel;
@@ -10,7 +9,7 @@ public final class RawImagePanel extends JPanel {
     private BufferedImage image;
 
     public RawImagePanel() {
-        setBackground(Color.DARK_GRAY);
+        setBackground(AppPalette.PANEL);
     }
 
     public static BufferedImage toBufferedImage(RgbImage rgbImage) {

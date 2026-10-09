@@ -14,14 +14,18 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 public final class DirectoryMosaicPanel extends JPanel {
-    private final JPanel tiles = new JPanel(new GridLayout(0, 3, 12, 12));
+    private final JPanel tiles = new JPanel(new GridLayout(0, 3, 1, 1));
     private final Map<Path, JButton> buttons = new LinkedHashMap<>();
     private final Consumer<Path> openPhoto;
 
     public DirectoryMosaicPanel(Consumer<Path> openPhoto) {
         super(new BorderLayout());
         this.openPhoto = openPhoto;
-        add(new JScrollPane(tiles));
+        setBackground(AppPalette.PANEL);
+        tiles.setBackground(AppPalette.BORDER);
+        JScrollPane scroll = new JScrollPane(tiles);
+        AppPalette.styleScrollPane(scroll);
+        add(scroll);
     }
 
     public void showFiles(List<Path> paths) {
@@ -29,6 +33,7 @@ public final class DirectoryMosaicPanel extends JPanel {
         buttons.clear();
         for (Path path : paths) {
             JButton tile = new JButton(path.getFileName().toString());
+            AppPalette.styleButton(tile, AppPalette.TILE);
             tile.setVerticalTextPosition(JButton.BOTTOM);
             tile.setHorizontalTextPosition(JButton.CENTER);
             tile.setEnabled(false);
