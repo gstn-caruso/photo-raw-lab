@@ -10,11 +10,13 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.Optional;
 import photorawlab.domain.PhotoMetadata;
 
 public final class RawMetadataReader {
-    private static final DateTimeFormatter EXIF_DATE = DateTimeFormatter.ofPattern("uuuu:MM:dd HH:mm:ss");
+    private static final DateTimeFormatter EXIF_DATE = DateTimeFormatter.ofPattern("uuuu:MM:dd HH:mm:ss")
+            .withResolverStyle(ResolverStyle.STRICT);
 
     public PhotoMetadata read(Path path) {
         try {

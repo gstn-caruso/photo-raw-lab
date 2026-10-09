@@ -12,6 +12,14 @@ import org.junit.jupiter.api.io.TempDir;
 class RawMetadataReaderTest {
     @TempDir Path directory;
 
+    @Test void invalidCaptureDateStaysUnknownWithoutDroppingTheOtherTags() throws Exception {
+        byte[] bytes = exifTiff();
+        ByteBuffer.wrap(bytes).position(200).put("2024:02:31 12:30:45\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        var metadata = new RawMetadataReader().read(Files.write(directory.resolve("invalid-date.dng"), bytes));
+        assertTrue(metadata.captured().isEmpty());
+        assertEquals("Test Camera", metadata.camera().orElseThrow());
+    }
+
     @Test void realKodakRawSuppliesCameraButDoesNotInventMissingCaptureOrOriginalDimensions() throws Exception {
         Path raw = Path.of(getClass().getResource("/raw/kodak-dc50.kdc").toURI());
         var metadata = new RawMetadataReader().read(raw);
