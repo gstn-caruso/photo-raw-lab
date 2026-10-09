@@ -4,6 +4,8 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Paleta neutra de grises inspirada en Lightroom: galería con celdas gris medio, separadores finos y nombres claros; barra, controles y visor en gris oscuro.
+
 - Comando de proyecto `/abrir-app` para compilar y abrir el visor con Maven.
 
 - Previews rápidas desde el JPEG o bitmap RGB embebido por la cámara, con orientación y fallback al revelado completo cuando la miniatura no es utilizable. Abrir una fotografía conserva el revelado RAW completo.
