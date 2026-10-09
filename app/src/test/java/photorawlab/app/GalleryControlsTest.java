@@ -72,6 +72,7 @@ class GalleryControlsTest {
                 ((JComboBox<?>) controls.getComponent(1)).setSelectedIndex(1);
                 ((JComboBox<?>) controls.getComponent(3)).setSelectedIndex(1);
                 assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura"), "Sin datos");
                 frame[0].openRaw(alpha);
             });
             assertNotNull(completions.poll(5, java.util.concurrent.TimeUnit.SECONDS));
@@ -80,6 +81,7 @@ class GalleryControlsTest {
                 var mosaic = findMosaic(frame[0]);
                 assertEquals("b.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
                 assertPreferences(mosaic);
+                assertTrue(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura").getSelectedValue().toString().startsWith("Sin datos"));
                 assertEquals(3, decodes.get(), "Returning to completed mosaic must reuse previews");
                 completions.clear();
                 frame[0].openDirectory(next);
@@ -88,6 +90,7 @@ class GalleryControlsTest {
             SwingUtilities.invokeAndWait(() -> {
                 var mosaic = findMosaic(frame[0]);
                 assertPreferences(mosaic);
+                assertTrue(MetadataFilterPanelTest.facet(mosaic, "Fecha de captura").getSelectedValue().toString().startsWith("Todas"));
                 assertEquals("c.raw", ((JButton) grid(mosaic).getComponent(0)).getText());
             });
         } finally {
@@ -103,7 +106,7 @@ class GalleryControlsTest {
 
     @Test void sortingDuringDecodeUsesMetadataAndKeepsPendingPreviewAttachedToItsPath() throws Exception {
         Path alpha = java.nio.file.Files.write(directory.resolve("a.raw"), new byte[20]);
-        Path beta = java.nio.file.Files.write(directory.resolve("b.raw"), new byte[10]);
+        Path beta = java.nio.file.Files.write(directory.resolve("b.dng"), new byte[10]);
         var entered = new java.util.concurrent.CountDownLatch(1);
         var release = new java.util.concurrent.CountDownLatch(1);
         var done = new java.util.concurrent.CountDownLatch(1);
@@ -141,11 +144,14 @@ class GalleryControlsTest {
                 original[1] = (JButton) grid(mosaic).getComponent(1);
                 ((JComboBox<?>) ((JPanel) mosaic.getComponent(1)).getComponent(1)).setSelectedIndex(2);
                 assertSame(original[1], grid(mosaic).getComponent(0), "Smaller file must move first while decoding is blocked");
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo"), "DNG");
+                assertEquals(1, grid(mosaic).getComponentCount());
             });
             release.countDown();
             assertTrue(done.await(5, java.util.concurrent.TimeUnit.SECONDS));
             SwingUtilities.invokeAndWait(() -> {
                 assertSame(original[1], grid(mosaic).getComponent(0));
+                MetadataFilterPanelTest.select(MetadataFilterPanelTest.facet(mosaic, "Tipo de archivo"), "Todas");
                 assertNotNull(original[0].getIcon());
                 assertNotNull(original[1].getIcon());
                 assertTrue(original[0].isEnabled());
