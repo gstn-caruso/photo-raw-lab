@@ -14,6 +14,14 @@ Las miniaturas conservan la proporción dentro de 240 × 180 píxeles, sin agran
 
 Las previews se cargan de a una en segundo plano. Al volver a un mosaico que todavía estaba cargando, se vuelve a cargar esa carpeta. Cambiar de carpeta o cerrar ignora resultados anteriores y deja terminar la llamada nativa en curso. La [verificación de previews](docs/verification/embedded-preview-tdd.md) registra los casos cubiertos y una comparación local de tiempos.
 
+## Evolución del proyecto
+
+La [hoja de ruta hacia una experiencia tipo Lightroom Classic](docs/roadmap-lightroom-classic.md)
+define la evolución de todo el proyecto: biblioteca y selección, catálogo e
+importación, organización, revelado no destructivo, exportación y módulos avanzados.
+Incluye prioridades, dependencias y criterios de salida; las funciones futuras
+están diferenciadas de las disponibles hoy.
+
 ## Ejecutar
 
 El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `/opt/photo-raw-lab/bin/photo-raw-lab`. El paquete incluye su propio Java y declara la dependencia nativa LibRaw.

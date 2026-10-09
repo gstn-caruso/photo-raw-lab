@@ -1,5 +1,10 @@
 # Java RAW FFM Implementation Plan
 
+> Antecedente del MVP. La evolución integral se sigue en la
+> [hoja de ruta hacia Lightroom Classic](../../roadmap-lightroom-classic.md).
+> Las casillas originales no representan el estado actual. Para trabajo nuevo
+> rigen los acuerdos de AGENTS.md: mismo checkout, feature branch y sin worktrees.
+
 **Goal:** Ventana que abre fotografías RAW y las muestra, con CI verde.
 **Architecture:** Dominio RGB independiente; LibRaw FFM en frontera; Swing coordina carga async y presentación.
 **Tech Stack:** Java 25, Maven, JUnit, Swing, LibRaw 0.21, Linux amd64.
@@ -7,7 +12,7 @@
 
 ## Global Constraints
 
-TDD Red–Green–Refactor, commits convencionales manuales, worktrees separados, revisión independiente, PR y merge sólo con CI verde. Sin preguntas por instrucción del usuario.
+TDD Red–Green–Refactor, commits convencionales manuales, feature branch en el mismo checkout sin worktrees, revisión independiente, PR y merge sólo con CI verde.
 
 ## Task 1: Baseline y contratos
 
