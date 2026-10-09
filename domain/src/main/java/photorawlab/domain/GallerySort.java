@@ -19,6 +19,7 @@ public record GallerySort(Criterion criterion, Direction direction) {
 
     public Comparator<GalleryPhoto> comparator() {
         var primary = criterion.comparator;
-        return direction == Direction.ASCENDING ? primary : primary.reversed();
+        var directed = direction == Direction.ASCENDING ? primary : primary.reversed();
+        return directed.thenComparing(Criterion.NAME.comparator);
     }
 }

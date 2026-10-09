@@ -17,6 +17,19 @@ class GallerySortTest {
         assertOrder(input, GallerySort.Criterion.SIZE, List.of(gamma, alpha, beta));
     }
 
+    @Test void tiesUseAscendingNamesInEitherDirectionRegardlessOfInputOrder() {
+        var upper = new GalleryPhoto("A.raw", Instant.EPOCH, 10);
+        var lower = new GalleryPhoto("a.raw", Instant.EPOCH, 10);
+        var beta = new GalleryPhoto("b.raw", Instant.EPOCH, 10);
+        for (var input : List.of(List.of(beta, lower, upper), List.of(lower, upper, beta))) {
+            for (var criterion : List.of(GallerySort.Criterion.MODIFIED, GallerySort.Criterion.SIZE)) {
+                for (var direction : GallerySort.Direction.values()) {
+                    assertEquals(List.of(upper, lower, beta), input.stream().sorted(new GallerySort(criterion, direction).comparator()).toList());
+                }
+            }
+        }
+    }
+
     private void assertOrder(List<GalleryPhoto> input, GallerySort.Criterion criterion, List<GalleryPhoto> ascending) {
         assertEquals(ascending, input.stream().sorted(new GallerySort(criterion, GallerySort.Direction.ASCENDING).comparator()).toList());
         assertEquals(ascending.reversed(), input.stream().sorted(new GallerySort(criterion, GallerySort.Direction.DESCENDING).comparator()).toList());
