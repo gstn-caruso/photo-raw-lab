@@ -23,4 +23,14 @@ class RawDirectoryTest {
         assertTrue(new RawDirectory().files(directory).isEmpty());
         assertThrows(java.io.IOException.class, () -> new RawDirectory().files(directory.resolve("missing")));
     }
+
+    @Test void capturesFileMetadataForSortingWithoutReadingImageContent() throws Exception {
+        Path photo = Files.write(directory.resolve("photo.raw"), new byte[17]);
+        var modified = java.time.Instant.ofEpochSecond(1234567);
+        Files.setLastModifiedTime(photo, java.nio.file.attribute.FileTime.from(modified));
+        var entries = new RawDirectory().snapshot(directory);
+        assertEquals(1, entries.size());
+        assertEquals(photo, entries.getFirst().path());
+        assertEquals(new photorawlab.domain.GalleryPhoto("photo.raw", modified, 17), entries.getFirst().photo());
+    }
 }

@@ -6,6 +6,8 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.ArrayList;
+import java.nio.file.attribute.BasicFileAttributes;
 import photorawlab.domain.GalleryPhoto;
 
 public final class RawDirectory {
@@ -20,6 +22,20 @@ public final class RawDirectory {
             return entries.filter(Files::isRegularFile).filter(this::isRaw)
                     .sorted(Comparator.comparing(Path::toString)).toList();
         }
+    }
+
+    public List<Entry> snapshot(Path directory) throws IOException {
+        List<Entry> photos = new ArrayList<>();
+        try (var paths = Files.list(directory)) {
+            for (Path path : paths.filter(this::isRaw).sorted().toList()) {
+                BasicFileAttributes attributes = Files.readAttributes(path, BasicFileAttributes.class);
+                if (attributes.isRegularFile()) {
+                    photos.add(new Entry(path, new GalleryPhoto(path.getFileName().toString(),
+                            attributes.lastModifiedTime().toInstant(), attributes.size())));
+                }
+            }
+        }
+        return List.copyOf(photos);
     }
 
     private boolean isRaw(Path path) {
