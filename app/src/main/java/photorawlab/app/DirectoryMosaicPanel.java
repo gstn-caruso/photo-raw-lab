@@ -2,6 +2,8 @@ package photorawlab.app;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Component;
+import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
@@ -9,7 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import javax.swing.ImageIcon;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -37,8 +39,10 @@ public final class DirectoryMosaicPanel extends JPanel {
         for (Path path : paths) {
             JButton tile = new JButton(path.getFileName().toString());
             AppPalette.styleButton(tile, AppPalette.TILE);
-            tile.setVerticalTextPosition(JButton.BOTTOM);
+            tile.setVerticalTextPosition(JButton.TOP);
             tile.setHorizontalTextPosition(JButton.CENTER);
+            tile.setVerticalAlignment(JButton.TOP);
+            tile.setIconTextGap(8);
             tile.setEnabled(false);
             tile.addActionListener(event -> openPhoto.accept(path));
             buttons.put(path, tile);
@@ -50,12 +54,32 @@ public final class DirectoryMosaicPanel extends JPanel {
 
     public void showPreview(Path path, BufferedImage preview) {
         JButton tile = buttons.get(path);
-        tile.setIcon(new ImageIcon(preview));
+        tile.setIcon(new PreviewIcon(preview));
         tile.setEnabled(true);
     }
 
     public void showError(Path path, String error) {
         buttons.get(path).setToolTipText("No se pudo abrir: " + error);
+    }
+
+    private record PreviewIcon(BufferedImage preview) implements Icon {
+        @Override
+        public int getIconWidth() {
+            return 240;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 180;
+        }
+
+        @Override
+        public void paintIcon(Component component, Graphics graphics, int x, int y) {
+            if (preview != null) {
+                graphics.drawImage(preview, x + (getIconWidth() - preview.getWidth()) / 2,
+                        y + (getIconHeight() - preview.getHeight()) / 2, null);
+            }
+        }
     }
 
     private static final class LibraryGrid extends JPanel implements Scrollable {
