@@ -4,6 +4,10 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Hoja de ruta integral hacia una experiencia tipo Lightroom Classic, con etapas
+  de biblioteca, catálogo, organización, revelado no destructivo, exportación y
+  módulos avanzados; prioridades, dependencias y criterios verificables.
+
 - Filtros de biblioteca por fecha de captura, cámara, lente y tipo de archivo, con conteos combinados, opción Sin datos y pie de fotos visibles sobre el total; columnas adaptables y filtros conservados durante la navegación.
 - Celdas con índice, cámara, lente y ajustes de exposición; lectura EXIF en segundo plano, captura y dimensiones originales en el tooltip y desconocidos explícitos ante metadatos ausentes.
 
