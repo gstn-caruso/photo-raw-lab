@@ -26,7 +26,7 @@ import photorawlab.domain.GallerySort;
 
 public final class DirectoryMosaicPanel extends JPanel {
     private final JPanel tiles = new LibraryGrid();
-    private final Map<Path, JButton> buttons = new LinkedHashMap<>();
+    private final Map<Path, PhotoTile> buttons = new LinkedHashMap<>();
     private final Consumer<Path> openPhoto;
     private List<RawDirectory.Entry> entries = List.of();
     private final JComboBox<SortOption> criterion = new JComboBox<>(new SortOption[] {
@@ -69,13 +69,7 @@ public final class DirectoryMosaicPanel extends JPanel {
         buttons.clear();
         for (var entry : entries) {
             Path path = entry.path();
-            JButton tile = new JButton(path.getFileName().toString());
-            AppPalette.styleButton(tile, AppPalette.TILE);
-            tile.setVerticalTextPosition(JButton.TOP);
-            tile.setHorizontalTextPosition(JButton.CENTER);
-            tile.setVerticalAlignment(JButton.TOP);
-            tile.setIconTextGap(8);
-            tile.setEnabled(false);
+            PhotoTile tile = new PhotoTile(entry.photo());
             tile.addActionListener(event -> openPhoto.accept(path));
             buttons.put(path, tile);
         }
@@ -97,7 +91,11 @@ public final class DirectoryMosaicPanel extends JPanel {
                 direction.getSelectedIndex() == 0 ? GallerySort.Direction.ASCENDING : GallerySort.Direction.DESCENDING);
         tiles.removeAll();
         entries.stream().sorted(java.util.Comparator.comparing(RawDirectory.Entry::photo, sort.comparator()))
-                .forEach(entry -> tiles.add(buttons.get(entry.path())));
+                .forEach(entry -> {
+                    PhotoTile tile = buttons.get(entry.path());
+                    tile.showIndex(tiles.getComponentCount() + 1);
+                    tiles.add(tile);
+                });
         revalidate();
         repaint();
     }
@@ -163,7 +161,7 @@ public final class DirectoryMosaicPanel extends JPanel {
 
     private static final class LibraryGrid extends JPanel implements Scrollable {
         private static final int CELL_WIDTH = 264;
-        private static final int CELL_HEIGHT = 232;
+        private static final int CELL_HEIGHT = 280;
 
         LibraryGrid() {
             super(null);

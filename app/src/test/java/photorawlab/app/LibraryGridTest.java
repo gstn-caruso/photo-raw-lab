@@ -27,17 +27,17 @@ class LibraryGridTest {
                     mosaic.showFiles(IntStream.range(0, 6).mapToObj(index -> Path.of(index + ".raw")).toList());
                     frames[i] = new JFrame();
                     frames[i].setContentPane(mosaic);
-                    frames[i].setSize(i == 0 ? 806 : 850, 540);
+                    frames[i].setSize(i == 0 ? 826 : 850, 750);
                     frames[i].setVisible(true);
                 }
             });
-            SwingUtilities.invokeAndWait(() -> frames[1].setSize(806, 540));
+            SwingUtilities.invokeAndWait(() -> frames[1].setSize(826, 750));
             SwingUtilities.invokeAndWait(() -> {
                 for (JFrame frame : frames) {
                     DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
                     JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
-                    assertEquals(0, tiles(mosaic).getComponent(2).getY(), "Three columns should fit at 806");
-                    assertEquals(464, tiles(mosaic).getHeight());
+                    assertEquals(0, tiles(mosaic).getComponent(2).getY(), "Three columns should fit at 826");
+                    assertEquals(560, tiles(mosaic).getHeight());
                     assertFalse(scroll.getVerticalScrollBar().isVisible());
                     frame.setSize(570, 540);
                 }
@@ -46,11 +46,11 @@ class LibraryGridTest {
                 for (JFrame frame : frames) {
                     DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame.getContentPane();
                     JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
-                    assertEquals(696, tiles(mosaic).getHeight());
+                    assertEquals(840, tiles(mosaic).getHeight());
                     assertTrue(scroll.getVerticalScrollBar().isVisible());
                     scroll.getVerticalScrollBar().setValue(scroll.getVerticalScrollBar().getMaximum());
-                    assertEquals(696, scroll.getViewport().getViewRect().y + scroll.getViewport().getExtentSize().height);
-                    assertEquals(696, tiles(mosaic).getComponent(5).getY() + tiles(mosaic).getComponent(5).getHeight());
+                    assertEquals(840, scroll.getViewport().getViewRect().y + scroll.getViewport().getExtentSize().height);
+                    assertEquals(840, tiles(mosaic).getComponent(5).getY() + tiles(mosaic).getComponent(5).getHeight());
                 }
             });
         } finally {
@@ -88,10 +88,10 @@ class LibraryGridTest {
             SwingUtilities.invokeAndWait(() -> {
                 DirectoryMosaicPanel mosaic = (DirectoryMosaicPanel) frame[0].getContentPane();
                 JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
-                assertEquals(696, tiles(mosaic).getHeight());
+                assertEquals(840, tiles(mosaic).getHeight());
                 assertEquals(0, tiles(mosaic).getComponent(3).getY());
-                assertEquals(464, tiles(mosaic).getComponent(10).getY());
-                assertFalse(scroll.getVerticalScrollBar().isVisible());
+                assertEquals(560, tiles(mosaic).getComponent(10).getY());
+                assertTrue(scroll.getVerticalScrollBar().isVisible());
                 screenshot[0] = new BufferedImage(mosaic.getWidth(), mosaic.getHeight(), BufferedImage.TYPE_INT_RGB);
                 var graphics = screenshot[0].createGraphics();
                 try { mosaic.paint(graphics); }
@@ -127,7 +127,7 @@ class LibraryGridTest {
     }
 
     private static void assertPreviewPlacement(JButton tile, int width, int height) {
-        tile.setSize(264, 232);
+        tile.setSize(264, 280);
         assertEquals(240, tile.getIcon().getIconWidth());
         assertEquals(180, tile.getIcon().getIconHeight());
         var insets = tile.getInsets();
@@ -140,7 +140,7 @@ class LibraryGridTest {
                 tile.getHorizontalAlignment(), tile.getVerticalTextPosition(),
                 tile.getHorizontalTextPosition(), view, icon, text, tile.getIconTextGap());
         assertTrue(text.y + text.height < icon.y, "Filename must be above preview");
-        BufferedImage painted = new BufferedImage(264, 232, BufferedImage.TYPE_INT_RGB);
+        BufferedImage painted = new BufferedImage(264, 280, BufferedImage.TYPE_INT_RGB);
         var graphics = painted.createGraphics();
         tile.paint(graphics);
         graphics.dispose();
@@ -169,21 +169,21 @@ class LibraryGridTest {
                 frame.setVisible(true);
                 frame.validate();
                 Container tiles = tiles(mosaic);
-                assertEquals(new Dimension(264, 232), tiles.getComponent(0).getSize());
+                assertEquals(new Dimension(264, 280), tiles.getComponent(0).getSize());
                 assertEquals(0, tiles.getComponent(2).getY());
-                assertEquals(232, tiles.getComponent(3).getY());
+                assertEquals(280, tiles.getComponent(3).getY());
                 assertEquals(0, tiles.getComponent(6).getX());
-                assertEquals(new Dimension(264, 232), tiles.getComponent(6).getSize());
+                assertEquals(new Dimension(264, 280), tiles.getComponent(6).getSize());
                 frame.setSize(570, 650);
                 frame.validate();
-                assertEquals(232, tiles.getComponent(2).getY());
-                assertEquals(new Dimension(264, 232), tiles.getComponent(0).getSize());
+                assertEquals(280, tiles.getComponent(2).getY());
+                assertEquals(new Dimension(264, 280), tiles.getComponent(0).getSize());
                 JScrollPane scroll = (JScrollPane) mosaic.getComponent(0);
                 assertTrue(scroll.getVerticalScrollBar().isVisible());
                 assertFalse(scroll.getHorizontalScrollBar().isVisible());
                 mosaic.showFiles(java.util.List.of(Path.of("single.raw")));
                 frame.validate();
-                assertEquals(new Dimension(264, 232), tiles.getComponent(0).getSize());
+                assertEquals(new Dimension(264, 280), tiles.getComponent(0).getSize());
                 assertEquals(0, tiles.getComponent(0).getY());
                 assertFalse(scroll.getVerticalScrollBar().isVisible());
             } finally {
