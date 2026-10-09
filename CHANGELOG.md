@@ -4,6 +4,8 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Comando de proyecto `/abrir-app` para compilar y abrir el visor con Maven.
+
 - Previews rápidas desde el JPEG o bitmap RGB embebido por la cámara, con orientación y fallback al revelado completo cuando la miniatura no es utilizable. Abrir una fotografía conserva el revelado RAW completo.
 
 - Escala de interfaz calculada al arrancar según los DPI del escritorio Linux/X11, con overrides explícitos respetados y consulta `xrdb` acotada.

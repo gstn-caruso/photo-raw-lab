@@ -21,6 +21,16 @@ env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
 java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar
 ```
 
+Para compilar y abrir la app desde la raíz sin generar el JAR:
+
+```text
+mvn -B -pl app -am compile exec:exec
+```
+
+En Claude Code, `/abrir-app` ejecuta ese comando mediante
+[`.claude/commands/abrir-app.md`](.claude/commands/abrir-app.md) y deja la ventana
+abierta en el escritorio actual.
+
 También podés pasar una ruta inicial:
 
 ```text
