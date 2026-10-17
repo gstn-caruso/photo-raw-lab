@@ -1,18 +1,23 @@
 package photorawlab.app;
 
+import photorawlab.domain.GalleryPhoto;
+import photorawlab.domain.GallerySort;
+import photorawlab.domain.LibraryFilter;
+
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.time.Instant;
-import java.awt.FlowLayout;
+
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -21,9 +26,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.Scrollable;
 import javax.swing.SwingUtilities;
-import photorawlab.domain.GalleryPhoto;
-import photorawlab.domain.GallerySort;
-import photorawlab.domain.LibraryFilter;
 
 public final class DirectoryMosaicPanel extends JPanel {
     private final JPanel tiles = new LibraryGrid();
@@ -31,17 +33,24 @@ public final class DirectoryMosaicPanel extends JPanel {
     private final Consumer<Path> openPhoto;
     private List<RawDirectory.Entry> entries = List.of();
     private final LibraryFilter filter = new LibraryFilter();
-    private final MetadataFilterPanel metadataFilters = new MetadataFilterPanel(filter, this::reorderTiles);
+    private final MetadataFilterPanel metadataFilters =
+            new MetadataFilterPanel(filter, this::reorderTiles);
     private final JLabel count = new JLabel("0 de 0 fotos");
-    private final JComboBox<SortOption> criterion = new JComboBox<>(new SortOption[] {
-        new SortOption("Nombre de archivo", GallerySort.Criterion.NAME),
-        new SortOption("Fecha de modificación", GallerySort.Criterion.MODIFIED),
-        new SortOption("Tamaño", GallerySort.Criterion.SIZE)
-    });
-    private final JComboBox<String> direction = new JComboBox<>(new String[] {"Ascendente", "Descendente"});
+    private final JComboBox<SortOption> criterion =
+            new JComboBox<>(
+                    new SortOption[] {
+                        new SortOption("Nombre de archivo", GallerySort.Criterion.NAME),
+                        new SortOption("Fecha de modificación", GallerySort.Criterion.MODIFIED),
+                        new SortOption("Tamaño", GallerySort.Criterion.SIZE)
+                    });
+    private final JComboBox<String> direction =
+            new JComboBox<>(new String[] {"Ascendente", "Descendente"});
 
     private record SortOption(String label, GallerySort.Criterion criterion) {
-        @Override public String toString() { return label; }
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
     public DirectoryMosaicPanel(Consumer<Path> openPhoto) {
@@ -67,8 +76,17 @@ public final class DirectoryMosaicPanel extends JPanel {
     }
 
     public void showFiles(List<Path> paths) {
-        showEntries(paths.stream().map(path -> new RawDirectory.Entry(path,
-                new GalleryPhoto(path.getFileName().toString(), Instant.EPOCH, 0))).toList());
+        showEntries(
+                paths.stream()
+                        .map(
+                                path ->
+                                        new RawDirectory.Entry(
+                                                path,
+                                                new GalleryPhoto(
+                                                        path.getFileName().toString(),
+                                                        Instant.EPOCH,
+                                                        0)))
+                        .toList());
     }
 
     public void showEntries(List<RawDirectory.Entry> entries) {
@@ -100,16 +118,24 @@ public final class DirectoryMosaicPanel extends JPanel {
     }
 
     private void reorderTiles() {
-        GallerySort sort = new GallerySort(((SortOption) criterion.getSelectedItem()).criterion(),
-                direction.getSelectedIndex() == 0 ? GallerySort.Direction.ASCENDING : GallerySort.Direction.DESCENDING);
+        GallerySort sort =
+                new GallerySort(
+                        ((SortOption) criterion.getSelectedItem()).criterion(),
+                        direction.getSelectedIndex() == 0
+                                ? GallerySort.Direction.ASCENDING
+                                : GallerySort.Direction.DESCENDING);
         tiles.removeAll();
-        entries.stream().filter(entry -> filter.matches(entry.photo()))
-                .sorted(java.util.Comparator.comparing(RawDirectory.Entry::photo, sort.comparator()))
-                .forEach(entry -> {
-                    PhotoTile tile = buttons.get(entry.path());
-                    tile.showIndex(tiles.getComponentCount() + 1);
-                    tiles.add(tile);
-                });
+        entries.stream()
+                .filter(entry -> filter.matches(entry.photo()))
+                .sorted(
+                        java.util.Comparator.comparing(
+                                RawDirectory.Entry::photo, sort.comparator()))
+                .forEach(
+                        entry -> {
+                            PhotoTile tile = buttons.get(entry.path());
+                            tile.showIndex(tiles.getComponentCount() + 1);
+                            tiles.add(tile);
+                        });
         count.setText(tiles.getComponentCount() + " de " + entries.size() + " fotos");
         metadataFilters.refresh(entries.stream().map(RawDirectory.Entry::photo).toList());
         revalidate();
@@ -126,19 +152,72 @@ public final class DirectoryMosaicPanel extends JPanel {
         buttons.get(path).setToolTipText("No se pudo abrir: " + error);
     }
 
+    private Path active;
+
+    public void select(Path path) {
+        active = path;
+        buttons.forEach(
+                (p, tile) ->
+                        tile.setBorder(
+                                javax.swing.BorderFactory.createLineBorder(
+                                        p.equals(active) ? AppPalette.HIGHLIGHT : AppPalette.BORDER,
+                                        p.equals(active) ? 3 : 1)));
+    }
+
+    public List<Path> visiblePaths() {
+        java.util.ArrayList<Path> paths = new java.util.ArrayList<>();
+        for (Component component : tiles.getComponents())
+            buttons.forEach(
+                    (path, tile) -> {
+                        if (component == tile) paths.add(path);
+                    });
+        return List.copyOf(paths);
+    }
+
+    public Icon filmstripIcon(Path path) {
+        var tile = buttons.get(path);
+        if (tile == null || !(tile.getIcon() instanceof PreviewIcon icon) || icon.preview() == null)
+            return null;
+        return new Icon() {
+            public int getIconWidth() {
+                return 64;
+            }
+
+            public int getIconHeight() {
+                return 48;
+            }
+
+            public void paintIcon(Component c, Graphics g, int x, int y) {
+                double scale =
+                        Math.min(
+                                64.0 / icon.preview().getWidth(),
+                                48.0 / icon.preview().getHeight());
+                int w = (int) (icon.preview().getWidth() * scale),
+                        h = (int) (icon.preview().getHeight() * scale);
+                g.drawImage(icon.preview(), x + (64 - w) / 2, y + (48 - h) / 2, w, h, null);
+            }
+        };
+    }
+
     private static final class SortControls extends JPanel {
         SortControls() {
             super(new FlowLayout(FlowLayout.LEFT, 8, 5));
         }
 
-        @Override public Dimension getPreferredSize() {
+        @Override
+        public Dimension getPreferredSize() {
             Dimension singleRow = super.getPreferredSize();
             if (getParent() == null || getParent().getWidth() == 0) return singleRow;
             FlowLayout layout = (FlowLayout) getLayout();
             var insets = getInsets();
             var parentInsets = getParent().getInsets();
-            int availableWidth = getParent().getWidth() - parentInsets.left - parentInsets.right
-                    - insets.left - insets.right - 2 * layout.getHgap();
+            int availableWidth =
+                    getParent().getWidth()
+                            - parentInsets.left
+                            - parentInsets.right
+                            - insets.left
+                            - insets.right
+                            - 2 * layout.getHgap();
             int height = insets.top + insets.bottom + 2 * layout.getVgap();
             int rowWidth = 0, rowHeight = 0;
             for (Component control : getComponents()) {
@@ -169,8 +248,11 @@ public final class DirectoryMosaicPanel extends JPanel {
         @Override
         public void paintIcon(Component component, Graphics graphics, int x, int y) {
             if (preview != null) {
-                graphics.drawImage(preview, x + (getIconWidth() - preview.getWidth()) / 2,
-                        y + (getIconHeight() - preview.getHeight()) / 2, null);
+                graphics.drawImage(
+                        preview,
+                        x + (getIconWidth() - preview.getWidth()) / 2,
+                        y + (getIconHeight() - preview.getHeight()) / 2,
+                        null);
             }
         }
     }
@@ -191,14 +273,19 @@ public final class DirectoryMosaicPanel extends JPanel {
         public void doLayout() {
             int columns = columns();
             for (int index = 0; index < getComponentCount(); index++) {
-                getComponent(index).setBounds(index % columns * CELL_WIDTH,
-                        index / columns * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT);
+                getComponent(index)
+                        .setBounds(
+                                index % columns * CELL_WIDTH,
+                                index / columns * CELL_HEIGHT,
+                                CELL_WIDTH,
+                                CELL_HEIGHT);
             }
         }
 
         @Override
         public Dimension getPreferredSize() {
-            JScrollPane scroll = (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, this);
+            JScrollPane scroll =
+                    (JScrollPane) SwingUtilities.getAncestorOfClass(JScrollPane.class, this);
             if (scroll == null || scroll.getWidth() == 0) {
                 return new Dimension(CELL_WIDTH, rowsForWidth(3 * CELL_WIDTH) * CELL_HEIGHT);
             }

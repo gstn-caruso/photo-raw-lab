@@ -1,5 +1,11 @@
 package photorawlab.app;
 
+import static java.lang.foreign.ValueLayout.ADDRESS;
+import static java.lang.foreign.ValueLayout.JAVA_INT;
+
+import photorawlab.domain.RawImageDecoder;
+import photorawlab.domain.RgbImage;
+
 import java.io.IOException;
 import java.lang.foreign.Arena;
 import java.lang.foreign.FunctionDescriptor;
@@ -11,15 +17,11 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import photorawlab.domain.RawImageDecoder;
-import photorawlab.domain.RgbImage;
-
-import static java.lang.foreign.ValueLayout.ADDRESS;
-import static java.lang.foreign.ValueLayout.JAVA_INT;
 
 public final class LibRawDecoder implements RawImageDecoder {
     // OpenMP workers can outlive a decode; their library must remain loaded until process exit.
-    private static final ConcurrentHashMap<String, SymbolLookup> LIBRARIES = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, SymbolLookup> LIBRARIES =
+            new ConcurrentHashMap<>();
     private final String library;
 
     public LibRawDecoder() {
@@ -33,31 +35,47 @@ public final class LibRawDecoder implements RawImageDecoder {
     @Override
     public RgbImage decode(Path path) throws IOException {
         Objects.requireNonNull(path, "path");
-        try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library)) {
-            return session.develop(path, arena);
-        } catch (IOException failure) {
-            throw new IOException("Cannot decode " + path + ": " + failure.getMessage(), failure);
-        } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
-            throw new IOException("Cannot load LibRaw library " + library + ". Install LibRaw 0.21: "
-                    + failure.getMessage(), failure);
+        synchronized (photorawlab.adapters.LinearRawDecoder.NATIVE_LOCK) {
+            try (Arena arena = Arena.ofConfined();
+                    NativeSession session = new NativeSession(library)) {
+                return session.develop(path, arena);
+            } catch (IOException failure) {
+                throw new IOException(
+                        "Cannot decode " + path + ": " + failure.getMessage(), failure);
+            } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
+                throw new IOException(
+                        "Cannot load LibRaw library "
+                                + library
+                                + ". Install LibRaw 0.21: "
+                                + failure.getMessage(),
+                        failure);
+            }
         }
     }
 
     @Override
     public RgbImage decodePreview(Path path) throws IOException {
         Objects.requireNonNull(path, "path");
-        try (Arena arena = Arena.ofConfined(); NativeSession session = new NativeSession(library)) {
-            Optional<RgbImage> preview = session.preview(path, arena);
-            if (preview.isPresent()) {
-                return preview.get();
+        synchronized (photorawlab.adapters.LinearRawDecoder.NATIVE_LOCK) {
+            try (Arena arena = Arena.ofConfined();
+                    NativeSession session = new NativeSession(library)) {
+                Optional<RgbImage> preview = session.preview(path, arena);
+                if (preview.isPresent()) {
+                    return preview.get();
+                }
+            } catch (IOException failure) {
+                throw new IOException(
+                        "Cannot decode preview " + path + ": " + failure.getMessage(), failure);
+            } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
+                throw new IOException(
+                        "Cannot load LibRaw library "
+                                + library
+                                + ". Install LibRaw 0.21: "
+                                + failure.getMessage(),
+                        failure);
             }
-        } catch (IOException failure) {
-            throw new IOException("Cannot decode preview " + path + ": " + failure.getMessage(), failure);
-        } catch (IllegalArgumentException | UnsatisfiedLinkError failure) {
-            throw new IOException("Cannot load LibRaw library " + library + ". Install LibRaw 0.21: "
-                    + failure.getMessage(), failure);
+            return decode(path);
         }
-        return decode(path);
     }
 
     private static final class NativeSession implements AutoCloseable {
@@ -76,20 +94,52 @@ public final class LibRawDecoder implements RawImageDecoder {
         private MemorySegment bitmap = MemorySegment.NULL;
 
         private NativeSession(String library) throws IOException {
-            SymbolLookup symbols = LIBRARIES.computeIfAbsent(library,
-                    name -> SymbolLookup.libraryLookup(name, Arena.global()));
-            MethodHandle init = function(symbols, "libraw_init", FunctionDescriptor.of(ADDRESS, JAVA_INT));
-            openFile = function(symbols, "libraw_open_file", FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
+            SymbolLookup symbols =
+                    LIBRARIES.computeIfAbsent(
+                            library, name -> SymbolLookup.libraryLookup(name, Arena.global()));
+            MethodHandle init =
+                    function(symbols, "libraw_init", FunctionDescriptor.of(ADDRESS, JAVA_INT));
+            openFile =
+                    function(
+                            symbols,
+                            "libraw_open_file",
+                            FunctionDescriptor.of(JAVA_INT, ADDRESS, ADDRESS));
             unpack = function(symbols, "libraw_unpack", FunctionDescriptor.of(JAVA_INT, ADDRESS));
-            unpackThumbnail = function(symbols, "libraw_unpack_thumb", FunctionDescriptor.of(JAVA_INT, ADDRESS));
-            process = function(symbols, "libraw_dcraw_process", FunctionDescriptor.of(JAVA_INT, ADDRESS));
-            makeBitmap = function(symbols, "libraw_dcraw_make_mem_image", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
-            makeThumbnail = function(symbols, "libraw_dcraw_make_mem_thumb", FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
-            clearBitmap = function(symbols, "libraw_dcraw_clear_mem", FunctionDescriptor.ofVoid(ADDRESS));
+            unpackThumbnail =
+                    function(
+                            symbols,
+                            "libraw_unpack_thumb",
+                            FunctionDescriptor.of(JAVA_INT, ADDRESS));
+            process =
+                    function(
+                            symbols,
+                            "libraw_dcraw_process",
+                            FunctionDescriptor.of(JAVA_INT, ADDRESS));
+            makeBitmap =
+                    function(
+                            symbols,
+                            "libraw_dcraw_make_mem_image",
+                            FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+            makeThumbnail =
+                    function(
+                            symbols,
+                            "libraw_dcraw_make_mem_thumb",
+                            FunctionDescriptor.of(ADDRESS, ADDRESS, ADDRESS));
+            clearBitmap =
+                    function(symbols, "libraw_dcraw_clear_mem", FunctionDescriptor.ofVoid(ADDRESS));
             closeHandler = function(symbols, "libraw_close", FunctionDescriptor.ofVoid(ADDRESS));
-            outputBits = function(symbols, "libraw_set_output_bps", FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
-            outputColor = function(symbols, "libraw_set_output_color", FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
-            errorText = function(symbols, "libraw_strerror", FunctionDescriptor.of(ADDRESS, JAVA_INT));
+            outputBits =
+                    function(
+                            symbols,
+                            "libraw_set_output_bps",
+                            FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
+            outputColor =
+                    function(
+                            symbols,
+                            "libraw_set_output_color",
+                            FunctionDescriptor.ofVoid(ADDRESS, JAVA_INT));
+            errorText =
+                    function(symbols, "libraw_strerror", FunctionDescriptor.of(ADDRESS, JAVA_INT));
             handler = (MemorySegment) invoke(init, 0);
             if (handler.address() == 0) {
                 throw new IOException("LibRaw could not allocate a decoder");
@@ -124,17 +174,24 @@ public final class LibRawDecoder implements RawImageDecoder {
             MemorySegment error = arena.allocate(JAVA_INT);
             bitmap = (MemorySegment) invoke(makeThumbnail, handler, error);
             check("dcraw_make_mem_thumb", error.get(JAVA_INT, 0));
-            // LibRaw 0.21 amd64 ABI: image pointer, sizes (six ushorts, iheight/iwidth,
-            // raw_pitch, padding, pixel_aspect), then sizes.flip at byte 40.
-            int flip = handler.reinterpret(44).get(JAVA_INT, 40);
+            int flip =
+                    (int)
+                            photorawlab.adapters.NativeBridge.call(
+                                    "pr_raw_flip",
+                                    FunctionDescriptor.of(JAVA_INT, ADDRESS),
+                                    handler);
             return ProcessedBitmap.copyToRgb(bitmap, flip);
         }
 
         private void check(String operation, int code) throws IOException {
             if (code != 0) {
                 MemorySegment message = (MemorySegment) invoke(errorText, code);
-                String description = message.address() == 0 ? "unknown error" : message.reinterpret(512).getString(0);
-                throw new IOException("LibRaw " + operation + " failed (" + code + "): " + description);
+                String description =
+                        message.address() == 0
+                                ? "unknown error"
+                                : message.reinterpret(512).getString(0);
+                throw new IOException(
+                        "LibRaw " + operation + " failed (" + code + "): " + description);
             }
         }
 
@@ -149,12 +206,17 @@ public final class LibRawDecoder implements RawImageDecoder {
             }
         }
 
-        private static MethodHandle function(SymbolLookup symbols, String name, FunctionDescriptor signature) throws IOException {
-            MemorySegment symbol = symbols.find(name).orElseThrow(() -> new IOException("LibRaw symbol missing: " + name));
+        private static MethodHandle function(
+                SymbolLookup symbols, String name, FunctionDescriptor signature)
+                throws IOException {
+            MemorySegment symbol =
+                    symbols.find(name)
+                            .orElseThrow(() -> new IOException("LibRaw symbol missing: " + name));
             return Linker.nativeLinker().downcallHandle(symbol, signature);
         }
 
-        private static Object invoke(MethodHandle function, Object... arguments) throws IOException {
+        private static Object invoke(MethodHandle function, Object... arguments)
+                throws IOException {
             try {
                 return function.invokeWithArguments(arguments);
             } catch (Error failure) {

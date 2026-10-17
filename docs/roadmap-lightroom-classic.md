@@ -1,7 +1,37 @@
 # Photo RAW Lab: hoja de ruta hacia una experiencia tipo Lightroom Classic
 
-Fecha: 2026-10-09. Estado: plan de producto; implementación pendiente salvo la
-base indicada abajo. Línea base: `fef4afe` en `main`.
+Fecha: 2026-10-16. Estado: revelador inicial implementado en la rama `feat/raw-development`;
+la validación fotográfica específica con A7 III / FE 28–70 sigue pendiente.
+
+## Entrega comprometida: revelador local
+
+El plan de revelador aprobado sustituye el orden de implementación anterior.
+La primera versión incluye estas cuatro entregas, sin depender de un catálogo global:
+
+1. **Motor y guardado:** LibRaw lineal de 16 bits, Rec. 2020 float32, Little CMS,
+   recetas y sidecars atómicos con detección de conflictos.
+2. **Navegación, ajustes y exportación:** biblioteca conservada, tira y selección,
+   zoom a resolución completa, encuadre, historial de sesión, JPEG y TIFF sRGB de 16 bits.
+3. **Selector y correcciones de lente:** fabricantes/modelos/variantes de Lensfun,
+   detección inequívoca, otras monturas y copia de calibración por fotografía.
+4. **Máscaras:** pincel, borrador, gradientes lineales/radiales, inversión, suma/resta,
+   ajustes locales y coordenadas del original orientado.
+
+Las cuatro están implementadas; ver [uso y contrato del revelador](revelador.md)
+y [evidencia reproducible](verification/revelador.md). La interfaz toma de
+[AEM Components](https://www.aemcomponents.dev/) la agrupación de formularios y
+los paneles plegables, adaptados a Swing y al fondo neutro de la fotografía.
+
+Validación local: Kodak KDC y tres ARW de **A7C / FE 28–60** a 28, 42 y 60 mm;
+no confundirlos con el equipo objetivo A7 III / FE 28–70. La referencia de carga
+inicial es 1000 fotos de 24 MP; se midieron 1000 entradas reutilizando 184 RAW mediante
+enlaces simbólicos. Queda pendiente una sesión de 1000 capturas distintas y disco frío. Las carpetas no se recorren
+recursivamente. No se modifican los originales.
+
+El catálogo global, importación organizada, máscaras por IA, eliminación de objetos,
+HDR y herramientas avanzadas de ruido/color son trabajo posterior. Las etapas que
+siguen se conservan como contexto del producto futuro, no como dependencias ni
+estado de la entrega de revelado actual.
 
 ## Objetivo y alcance
 
@@ -15,7 +45,7 @@ El primer producto útil termina en la etapa 5: una sesión de trabajo puede
 guardarse, reabrirse y producir fotografías exportadas con sus ajustes. Las
 etapas posteriores amplían calidad y cobertura. Este documento reemplaza al
 plan del MVP como guía de evolución; el plan y la especificación originales se
-conservan como antecedentes. No autoriza implementar todas las etapas juntas.
+conservan como antecedentes. El alcance autorizado actual es la entrega de revelador indicada arriba.
 
 Se mantiene Java 25, Maven, JUnit, Swing y LibRaw mediante FFM, con Linux amd64
 como plataforma inicial. Catálogo y originales locales, uso sin conexión y
@@ -270,18 +300,12 @@ mensajes por intención (Intention Revealing Selector, #4). No reestructurar tod
 el visor por anticipación: separar responsabilidades cuando lo exija el escenario,
 con cambios estructurales y funcionales en commits distintos.
 
-## Siguiente escenario recomendado y forma de entrega
+## Próxima validación y forma de entrega
 
-Empezar por etapa 1: **selección activa y navegación en lupa**. Dada una carpeta
-de tres fotos, seleccionar la segunda y abrirla; avanzar a la tercera y volver
-a la grilla debe conservar la tercera como activa y mantener filtros y orden.
-Contemplar extremos del recorrido, error de decode y cambio de carpeta durante
-la carga. Este escenario entrega una mejora visible sin imponer todavía un
-formato de catálogo.
-
-Antes de implementarlo, releer estado de Git y evidencia, decidir quién conserva
-la selección y quién coordina la carga, y escribir el test observable más pequeño
-que falle. No crear todas las responsabilidades de la tabla de una vez.
+Cerrar la validación fotográfica A7 III / FE 28–70 con RAW comprimidos y sin
+comprimir, patrones de color conocidos, actualización real de la base Lensfun
+y mediciones de memoria/latencia con 1000 fotos. No presentar estas mediciones
+como realizadas a partir del fixture Kodak ni de las muestras A7C.
 
 Cada escenario usa feature branch en el mismo checkout, sin worktrees, TDD y
 commit convencional manual al cerrar en verde; sin TCR. Verificar dominio con

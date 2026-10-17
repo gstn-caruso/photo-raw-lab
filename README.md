@@ -1,6 +1,10 @@
 # Photo RAW Lab
 
-Visor de fotografías RAW con Java 25, Swing y LibRaw mediante FFM. Al iniciar, muestra un mosaico del último directorio elegido. La primera vez, o si esa carpeta ya no existe, pide elegir una. **Abrir carpeta…** permite cambiarla; cancelar conserva la ventana disponible.
+Revelador de fotografías RAW con Java 25, Swing, LibRaw, Lensfun y Little CMS mediante FFM. Abre carpetas locales y conserva los originales: las ediciones se guardan en `foto.ARW.photoraw.json`. Incluye ajustes globales, recorte/enderezado/rotación, máscaras de pincel y gradientes, selector de lente por fabricante/modelo/perfil, deshacer/rehacer y exportación JPEG o TIFF sRGB de 16 bits.
+
+La [guía del revelador](docs/revelador.md) explica controles, guardado, conflictos y contrato de color. La [verificación](docs/verification/revelador.md) distingue pruebas automatizadas de las muestras reales disponibles.
+
+Al iniciar, muestra el mosaico del último directorio elegido. La primera vez, o si esa carpeta ya no existe, pide elegir una. **Abrir carpeta…** permite cambiarla; cancelar conserva la ventana disponible.
 
 El mosaico incluye archivos RAW del directorio, sin recorrer subcarpetas, ordenados por nombre. La grilla de biblioteca adapta la cantidad de columnas al ancho de la ventana, con celdas de 264 × 280 píxeles alineadas arriba e izquierda y desplazamiento vertical. Cada celda muestra índice y nombre arriba, la fotografía centrada en un área de 240 × 180 y cámara, lente, ISO, apertura, exposición y distancia focal debajo. El tooltip indica fecha de captura y dimensiones originales cuando se conocen; una foto única y la última fila conservan el mismo tamaño. Las previews aparecen en segundo plano; hacé clic para abrir una foto completa y usá **Volver al mosaico** para regresar. Los archivos que fallan quedan deshabilitados con el error en su tooltip; el resto continúa cargándose. **Abrir archivo…** también permite elegir una fotografía directamente.
 
@@ -10,9 +14,9 @@ Los metadatos EXIF se leen en segundo plano con [metadata-extractor 2.19.0](http
 
 La barra inferior del mosaico permite **Ordenar por** nombre de archivo, fecha de modificación o tamaño, en orden **Ascendente** o **Descendente**. Arranca por nombre ascendente, sin distinguir mayúsculas; los empates de fecha o tamaño se resuelven por nombre ascendente. La selección se conserva durante la sesión al cambiar de carpeta, abrir una fotografía y volver. Ordenar mueve las celdas existentes, conserva sus previews y errores, y está disponible mientras cargan. La fecha es la de modificación del archivo, y el tamaño se mide en bytes; ambos se leen en segundo plano al abrir la carpeta.
 
-Las miniaturas conservan la proporción dentro de 240 × 180 píxeles, sin agrandar previews pequeñas. El mosaico recupera primero la preview JPEG o RGB guardada por la cámara, sin revelar los datos del sensor: sus colores, recorte y resolución pueden diferir de la fotografía completa. Respeta la orientación EXIF del JPEG cuando está disponible y la orientación de cámara en los demás casos. Si la preview falta, su formato no está soportado o no se puede leer, revela el RAW completo como alternativa; esos archivos pueden tardar más. Abrir una fotografía sigue revelando el RAW completo.
+Las miniaturas conservan la proporción dentro de 240 × 180 píxeles, sin agrandar previews pequeñas. El mosaico recupera primero la preview JPEG o RGB guardada por la cámara, sin revelar los datos del sensor: sus colores, recorte y resolución pueden diferir de la fotografía completa. Respeta la orientación EXIF del JPEG cuando está disponible y la orientación de cámara en los demás casos. Si la preview falta, su formato no está soportado o no se puede leer, revela el RAW completo como alternativa; esos archivos pueden tardar más. El revelador usa datos RAW de alta precisión; las previews de cámara sólo se usan en la biblioteca.
 
-Las previews se cargan de a una en segundo plano. Al volver a un mosaico que todavía estaba cargando, se vuelve a cargar esa carpeta. Cambiar de carpeta o cerrar ignora resultados anteriores y deja terminar la llamada nativa en curso. La [verificación de previews](docs/verification/embedded-preview-tdd.md) registra los casos cubiertos y una comparación local de tiempos.
+Las previews se cargan de a una en segundo plano. Al abrir una fotografía, la biblioteca pausa las previews pendientes; al volver continúa conservando celdas, selección, filtros y posición. Cambiar de carpeta o cerrar ignora resultados anteriores y deja terminar la llamada nativa en curso. La [verificación de previews](docs/verification/embedded-preview-tdd.md) registra los casos cubiertos y una comparación local de tiempos.
 
 ## Evolución del proyecto
 
@@ -24,12 +28,12 @@ están diferenciadas de las disponibles hoy.
 
 ## Ejecutar
 
-El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `/opt/photo-raw-lab/bin/photo-raw-lab`. El paquete incluye su propio Java y declara la dependencia nativa LibRaw.
+El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://github.com/gstn-caruso/photo-raw-lab/releases) con `sudo apt install ./photo-raw-lab_*.deb` y ejecutá `/opt/photo-raw-lab/bin/photo-raw-lab`. El paquete incluye su propio Java y el puente C; declara LibRaw, Lensfun, su base de perfiles y Little CMS como dependencias nativas.
 
 Para desarrollar en Ubuntu 24.04 o posterior:
 
 ```text
-sudo apt install libraw-dev xvfb
+sudo apt install libraw-dev liblensfun-dev libglib2.0-dev liblcms2-dev pkg-config build-essential xvfb
 asdf install
 env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
 java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar
@@ -52,7 +56,7 @@ java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar "/ruta/fotografía.raw
 java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar "/ruta/fotografías"
 ```
 
-El JAR necesita Java 25 y `libraw.so.23`. Los launchers habilitan el [acceso nativo de FFM](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/foreign/SymbolLookup.html). El decoder usa la [API C de LibRaw](https://www.libraw.org/docs/API-C.html) para revelar los datos RAW completos a RGB sRGB de 8 bits. Identifica el formato por el contenido: acepta `.raw`, CR2/CR3, NEF, ARW, DNG, KDC y otros formatos soportados por la biblioteca instalada. Un volcado de sensor sin cabecera no identifica por sí solo cámara y dimensiones.
+El JAR necesita Java 25, `libraw.so.23`, `liblensfun.so.1`, `liblcms2.so.2` y la base local de Lensfun. El puente se compila durante Maven y se incluye en el JAR; no se necesita compilador en la máquina de uso. Los launchers habilitan el [acceso nativo de FFM](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/foreign/SymbolLookup.html). El decoder usa la [API C de LibRaw](https://www.libraw.org/docs/API-C.html) para las previews de biblioteca. El revelador usa el puente compilado contra los encabezados nativos, salida lineal de 16 bits sin brillo automático y procesamiento Rec. 2020 flotante de 32 bits; Little CMS convierte a sRGB para pantalla/exportación. Identifica el formato por el contenido: acepta `.raw`, CR2/CR3, NEF, ARW, DNG, KDC y otros formatos soportados por la biblioteca instalada. Un volcado de sensor sin cabecera no identifica por sí solo cámara y dimensiones.
 
 En Linux con `DISPLAY`, la aplicación consulta `Xft.dpi` mediante `xrdb` antes de iniciar Swing. Convierte DPI/96 al entero más cercano: 192 DPI usa escala 2 y 288 DPI usa 3. Sólo aplica escalas de 2 o más, con DPI válidos entre 96 y 768; ante un dato ausente, inválido o una consulta fallida, Java conserva su escala automática. El paquete Debian incluye la dependencia `x11-xserver-utils`, que provee `xrdb`.
 
