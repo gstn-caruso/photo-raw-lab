@@ -4,6 +4,14 @@ Los cambios de cada PR se registran acá antes del merge a `main`.
 
 ## Unreleased
 
+- Revelador no destructivo con sidecars versionados, conflictos detectados y guardado atómico.
+- Motor lineal de alta precisión con LibRaw/Little CMS, ajustes globales, historial, encuadre y exportación JPEG/TIFF sRGB.
+- Selector Lensfun por fabricante/modelo/variante, coincidencias automáticas inequívocas y calibraciones conservadas por foto.
+- Pincel, borrador, gradientes, ajustes locales y máscaras persistentes vinculadas al original orientado.
+- Navegación y tira con selección múltiple, zoom a resolución completa y biblioteca conservada; paneles plegables inspirados en AEM Components.
+- Corrección de lectura de EXIF Sony ARW con múltiples SubIFD; validación con A7C / FE 28–60 a 28, 42 y 60 mm.
+- Paquete Debian con el puente y dependencias Lensfun/Little CMS.
+
 - Hoja de ruta integral hacia una experiencia tipo Lightroom Classic, con etapas
   de biblioteca, catálogo, organización, revelado no destructivo, exportación y
   módulos avanzados; prioridades, dependencias y criterios verificables.
