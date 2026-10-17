@@ -33,7 +33,7 @@ El MVP se distribuye para Linux amd64. Instalá el `.deb` de [Releases](https://
 Para desarrollar en Ubuntu 24.04 o posterior:
 
 ```text
-sudo apt install libraw-dev liblensfun-dev liblcms2-dev pkg-config build-essential xvfb
+sudo apt install libraw-dev liblensfun-dev libglib2.0-dev liblcms2-dev pkg-config build-essential xvfb
 asdf install
 env -u WAYLAND_DISPLAY -u XDG_SESSION_TYPE xvfb-run -a mvn -B verify
 java -jar app/target/photo-raw-lab-app-0.1.0-SNAPSHOT.jar
